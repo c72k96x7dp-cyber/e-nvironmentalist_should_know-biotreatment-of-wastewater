@@ -1,0 +1,2629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anaerobic & Anoxic Biotreatment of Waste</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&family=Inter:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07111a;
+  --bg2: #0c1a25;
+  --bg3: #111f2e;
+  --green: #00e5b0;
+  --green-dim: rgba(0,229,176,0.15);
+  --green-glow: rgba(0,229,176,0.35);
+  --amber: #ffb830;
+  --amber-dim: rgba(255,184,48,0.18);
+  --blue: #5bb8f5;
+  --blue-dim: rgba(91,184,245,0.15);
+  --rust: #e05c3a;
+  --rust-dim: rgba(224,92,58,0.15);
+  --text: #ddeeff;
+  --text2: #6e95b0;
+  --text3: #2e4a5e;
+  --border: rgba(0,229,176,0.12);
+  --sidebar: 240px;
+  --mindmap-w: 220px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif}
+
+/* ═══ LAYOUT ═══ */
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* Mindmap nav - left panel */
+#mindmap-nav{
+  width:var(--mindmap-w);
+  flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  overflow:hidden;
+  position:relative;
+  transition:width 0.5s cubic-bezier(.77,0,.18,1);
+  display:flex;
+  flex-direction:column;
+}
+#mindmap-nav.hidden{width:0;border:none}
+#mindmap-nav.expanded{width:100vw;position:fixed;inset:0;z-index:200}
+
+/* Mindmap canvas */
+#mindmap-canvas{
+  flex:1;
+  overflow:hidden;
+  position:relative;
+}
+
+/* Middle: main content */
+#main-wrap{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+
+#content{
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:40px 44px 100px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--text3) transparent;
+  position:relative;
+}
+
+/* Right: glossary */
+#sidebar{
+  width:var(--sidebar);
+  flex-shrink:0;
+  background:var(--bg2);
+  border-left:1px solid var(--border);
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:0 0 80px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--text3) transparent;
+}
+
+/* ═══ NAV BAR ═══ */
+#navbar{
+  position:absolute;bottom:0;left:0;right:0;
+  height:68px;
+  background:linear-gradient(0deg,var(--bg) 55%,transparent);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 36px;z-index:50;
+}
+.nav-btn{
+  padding:9px 24px;border-radius:40px;
+  border:1px solid var(--border);
+  background:var(--bg3);
+  color:var(--text);
+  font-family:'Space Mono',monospace;font-size:12px;
+  cursor:pointer;letter-spacing:.08em;
+  transition:all .2s;
+}
+.nav-btn:hover{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.nav-btn.next{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.nav-btn.next:hover{background:rgba(255,184,48,.28)}
+.nav-btn:disabled{opacity:.25;cursor:default;pointer-events:none}
+#page-info{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);text-align:center;line-height:1.6}
+#page-info span{color:var(--text2);display:block;font-size:10px;margin-top:2px}
+
+/* ═══ SLIDES ═══ */
+.slide{display:none;animation:slideIn .38s cubic-bezier(.4,0,.2,1) both}
+.slide.active{display:block}
+.slide.exit-left{animation:slideOutLeft .3s cubic-bezier(.4,0,.2,1) both}
+.slide.enter-right{animation:slideInRight .38s cubic-bezier(.4,0,.2,1) both}
+.slide.exit-right{animation:slideOutRight .3s cubic-bezier(.4,0,.2,1) both}
+.slide.enter-left{animation:slideInLeft .38s cubic-bezier(.4,0,.2,1) both}
+
+@keyframes slideIn{from{opacity:0;transform:translateX(48px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInLeft{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideOutLeft{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-60px)}}
+@keyframes slideOutRight{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(60px)}}
+
+/* ═══ TYPOGRAPHY SYSTEM ═══ */
+.slide-tag{
+  font-family:'Space Mono',monospace;font-size:10px;
+  letter-spacing:.18em;color:var(--green);
+  text-transform:uppercase;margin-bottom:8px;
+}
+.slide-title{
+  font-family:'DM Serif Display',serif;
+  font-size:34px;line-height:1.15;font-style:italic;
+  color:var(--text);margin-bottom:6px;
+}
+.slide-title strong{font-style:normal;color:var(--green)}
+.slide-lead{
+  font-size:16px;color:var(--text2);
+  border-left:3px solid var(--amber);
+  padding-left:14px;margin-bottom:28px;line-height:1.6;
+}
+.slide-lead strong{color:var(--amber)}
+
+/* Big keyword display */
+.kw{
+  font-size:22px;font-weight:800;
+  letter-spacing:-.01em;color:var(--text);
+  line-height:1.3;
+}
+.kw em{color:var(--green);font-style:normal}
+.kw.amber em{color:var(--amber)}
+.kw.blue em{color:var(--blue)}
+
+/* Cards */
+.card{
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:22px 26px;
+  margin-bottom:16px;
+}
+.card-label{
+  font-family:'Space Mono',monospace;
+  font-size:14px;letter-spacing:.15em;
+  color:var(--green);text-transform:uppercase;
+  margin-bottom:10px;
+}
+.card-label.amber{color:var(--amber)}
+.card-label.blue{color:var(--blue)}
+.card-label.rust{color:var(--rust)}
+
+/* Two-col grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+
+/* Bullet list */
+.blist{list-style:none;display:flex;flex-direction:column;gap:10px}
+.blist li{
+  font-size:19px;color:var(--text2);
+  padding-left:22px;position:relative;line-height:1.6;
+}
+.blist li::before{content:'▸';color:var(--green);position:absolute;left:0;top:2px;font-size:14px}
+.blist li strong{color:var(--text);font-size:22px}
+
+/* Stat pills row */
+.pills{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.pill{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:40px;padding:7px 18px;
+  font-family:'Space Mono',monospace;font-size:13px;color:var(--text2);
+}
+.pill b{color:var(--amber)}
+
+/* Formula */
+.formula{
+  background:linear-gradient(135deg,rgba(0,229,176,.07),rgba(0,229,176,.02));
+  border:1px solid rgba(0,229,176,.3);border-radius:12px;
+  padding:18px 24px;text-align:center;
+  font-family:'Space Mono',monospace;font-size:14px;
+  color:var(--green);letter-spacing:.04em;margin:16px 0;
+}
+
+/* Divider */
+.divider{height:1px;background:var(--border);margin:20px 0}
+
+/* SVG wrap */
+.svg-wrap{
+  border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin:16px 0;background:var(--bg2);
+}
+
+/* Tab system */
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{
+  padding:8px 18px;font-family:'Space Mono',monospace;
+  font-size:11px;letter-spacing:.08em;cursor:pointer;
+  color:var(--text3);border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none;
+}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeUp .25s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Image placeholder */
+.img-ph{
+  border:2px dashed var(--text3);border-radius:12px;
+  padding:28px 20px;text-align:center;
+  color:var(--text3);font-family:'Space Mono',monospace;
+  font-size:11px;background:rgba(13,24,33,.5);margin:16px 0;
+  line-height:1.7;
+}
+.img-ph img{max-width:100%;border-radius:8px;display:block;margin:0 auto}
+
+/* ═══ S1: TITLE ═══ */
+.title-hero{padding:10px 0 20px}
+.hero-main{
+  font-family:'DM Serif Display',serif;
+  font-size:44px;line-height:1.1;font-style:italic;
+  color:var(--text);margin-bottom:16px;
+}
+.hero-main em{color:var(--green);font-style:normal}
+.hero-sub{
+  font-size:17px;color:var(--text2);
+  border-left:3px solid var(--amber);
+  padding-left:16px;margin-bottom:36px;
+}
+.char-cards{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:32px}
+.char-card{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:12px;padding:18px 22px;min-width:160px;
+}
+.char-role{font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.1em;margin-bottom:6px}
+.char-name{font-size:20px;font-weight:800;color:var(--green)}
+.char-name.amber{color:var(--amber)}
+.char-desc{font-size:13px;color:var(--text2);margin-top:5px;line-height:1.5}
+
+/* ═══ S3: MINDMAP EXPAND ═══ */
+#mindmap-expand-screen{
+  position:fixed;inset:0;z-index:300;
+  background:var(--bg);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .4s;
+}
+#mindmap-expand-screen.active{opacity:1;pointer-events:all}
+#mindmap-expand-svg{width:100%;max-width:1200px;height:644px}
+
+/* MINDMAP NAV (compact, left side) */
+#mm-nav-inner{
+  padding:12px;
+  height:100%;
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+#mm-nav-inner::-webkit-scrollbar{display:none}
+.mm-title{
+  font-family:'Space Mono',monospace;
+  font-size:9px;letter-spacing:.15em;color:var(--green);
+  text-transform:uppercase;padding:8px 4px 10px;
+  border-bottom:1px solid var(--border);margin-bottom:10px;
+}
+.mm-node{
+  padding:7px 10px;border-radius:8px;cursor:pointer;
+  font-size:12px;color:var(--text2);
+  transition:all .2s;margin-bottom:3px;
+  border:1px solid transparent;line-height:1.4;
+}
+.mm-node:hover{background:var(--green-dim);color:var(--green);border-color:rgba(0,229,176,.2)}
+.mm-node.active{background:var(--green-dim);color:var(--green);border-color:rgba(0,229,176,.3);font-weight:700}
+.mm-node.amber.active{background:var(--amber-dim);color:var(--amber);border-color:rgba(255,184,48,.3)}
+.mm-node.blue.active{background:var(--blue-dim);color:var(--blue);border-color:rgba(91,184,245,.3)}
+.mm-section{
+  font-family:'Space Mono',monospace;font-size:9px;
+  letter-spacing:.12em;color:var(--text3);text-transform:uppercase;
+  padding:10px 10px 4px;
+}
+.mm-node-sub{padding-left:20px;font-size:11px}
+
+/* ═══ GLOSSARY ═══ */
+.sb-head{
+  padding:16px 16px 12px;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--bg2);z-index:2;
+}
+.sb-head h3{
+  font-family:'Space Mono',monospace;font-size:9px;
+  letter-spacing:.18em;color:var(--green);text-transform:uppercase;
+}
+.sb-head p{font-size:10px;color:var(--text3);margin-top:3px}
+.g-item{
+  padding:11px 16px;border-bottom:1px solid rgba(0,229,176,.05);
+  animation:fadeIn .35s ease both;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+.g-term{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--amber);margin-bottom:2px}
+.g-cn{font-family:'Noto Sans SC',sans-serif;font-size:11px;color:var(--green);margin-bottom:4px;font-weight:500}
+.g-def{font-size:11px;color:var(--text2);line-height:1.55}
+.g-badge{
+  display:inline-block;font-family:'Space Mono',monospace;
+  font-size:9px;color:var(--text3);background:rgba(255,255,255,.04);
+  border-radius:3px;padding:1px 5px;margin-top:4px;
+}
+
+/* Compare table for "vs" tabs */
+.vs-table{width:100%;border-collapse:collapse;font-size:16px;margin-top:8px}
+.vs-table th{
+  font-family:'Space Mono',monospace;font-size:13px;
+  letter-spacing:.1em;padding:10px 14px;text-align:left;
+  border-bottom:1px solid var(--border);color:var(--text3);
+}
+.vs-table th.green{color:var(--green)}
+.vs-table th.amber{color:var(--amber)}
+.vs-table th.blue{color:var(--blue)}
+.vs-table td{
+  padding:10px 14px;border-bottom:1px solid rgba(0,229,176,.05);
+  color:var(--text2);line-height:1.5;vertical-align:top;
+}
+.vs-table tr:hover td{background:rgba(0,229,176,.03)}
+.vs-table td strong{color:var(--text);font-size:18px}
+.vs-table td.feature{color:var(--text2);font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.05em}
+
+/* highlight box */
+.hl-box{
+  border-radius:10px;padding:14px 18px;margin:12px 0;
+  font-size:19px;line-height:1.6;
+}
+.hl-box.green{background:var(--green-dim);border-left:3px solid var(--green);color:var(--text)}
+.hl-box.amber{background:var(--amber-dim);border-left:3px solid var(--amber);color:var(--text)}
+.hl-box.rust{background:var(--rust-dim);border-left:3px solid var(--rust);color:var(--text)}
+.hl-box.blue{background:var(--blue-dim);border-left:3px solid var(--blue);color:var(--text)}
+.hl-box strong{font-size:22px}
+
+/* scroll fix */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--text3);border-radius:4px}
+
+/* ═══ SVG ANIMATIONS ═══ */
+
+/* A1: stage highlight pulse */
+@keyframes a1-pulse {
+  0%,100%{opacity:0.18} 50%{opacity:0.45}
+}
+@keyframes a1-arrow-flow {
+  0%{stroke-dashoffset:24} 100%{stroke-dashoffset:0}
+}
+@keyframes a1-fade-in {
+  from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)}
+}
+.a1-stage-active rect { animation: a1-pulse 1.8s ease-in-out infinite; }
+.a1-arrow-anim { stroke-dasharray:6 4; animation: a1-arrow-flow 0.6s linear infinite; }
+.a1-step { opacity:0; }
+.a1-step.visible { animation: a1-fade-in 0.5s ease both; opacity:1; }
+
+/* A2: bubbles float up, influent flow, sludge settle */
+@keyframes a2-bubble-rise {
+  0%  { transform: translateY(0px);   opacity:0.8; }
+  80% { transform: translateY(-55px); opacity:0.6; }
+  100%{ transform: translateY(-65px); opacity:0; }
+}
+@keyframes a2-influent-flow {
+  0%  { stroke-dashoffset: 40; }
+  100%{ stroke-dashoffset: 0;  }
+}
+@keyframes a2-sludge-bob {
+  0%,100%{ transform:translateY(0); }
+  50%    { transform:translateY(-3px); }
+}
+.a2-bubble { animation: a2-bubble-rise 2.4s ease-in infinite; }
+.a2-bubble:nth-child(2){ animation-delay: 0.6s; animation-duration: 2.8s; }
+.a2-bubble:nth-child(3){ animation-delay: 1.2s; animation-duration: 2.2s; }
+.a2-bubble:nth-child(4){ animation-delay: 1.8s; animation-duration: 3s;   }
+.a2-influent { stroke-dasharray: 8 4; animation: a2-influent-flow 1s linear infinite; }
+.a2-granule  { animation: a2-sludge-bob 3s ease-in-out infinite; }
+.a2-granule:nth-child(even){ animation-delay:0.4s; }
+
+/* A3: UASB granules static, EGSB granules float/circulate */
+@keyframes a3-float {
+  0%,100%{ transform:translate(0,0); }
+  25%    { transform:translate(4px,-5px); }
+  75%    { transform:translate(-4px,3px); }
+}
+@keyframes a3-recycle-flow {
+  0%  { stroke-dashoffset: 60; }
+  100%{ stroke-dashoffset: 0;  }
+}
+@keyframes a3-upflow {
+  0%  { stroke-dashoffset: 30; }
+  100%{ stroke-dashoffset: 0;  }
+}
+.a3-egsb-granule { animation: a3-float 3.5s ease-in-out infinite; }
+.a3-egsb-granule:nth-child(2){ animation-delay:0.5s; animation-duration:4s; }
+.a3-egsb-granule:nth-child(3){ animation-delay:1s;   animation-duration:3s; }
+.a3-egsb-granule:nth-child(4){ animation-delay:1.5s; animation-duration:4.5s; }
+.a3-egsb-granule:nth-child(5){ animation-delay:0.8s; animation-duration:3.8s; }
+.a3-recycle { stroke-dasharray:8 4; animation: a3-recycle-flow 1.5s linear infinite; }
+.a3-upflow  { stroke-dasharray:8 4; animation: a3-upflow 1s linear infinite; }
+
+/* A4: biomass bounce, water dots drift right, membrane glow pulse */
+@keyframes a4-biomass-drift {
+  0%,100%{ transform:translate(0,0); }
+  33%    { transform:translate(2px,-3px); }
+  66%    { transform:translate(-2px,2px); }
+}
+@keyframes a4-water-cross {
+  0%  { transform:translateX(0);   opacity:0.7; }
+  100%{ transform:translateX(22px); opacity:0; }
+}
+@keyframes a4-membrane-glow {
+  0%,100%{ opacity:0.5; }
+  50%    { opacity:1; }
+}
+@keyframes a4-reject-pulse {
+  0%,100%{ opacity:0.3; }
+  50%    { opacity:0.7; }
+}
+.a4-biomass { animation: a4-biomass-drift 4s ease-in-out infinite; }
+.a4-biomass:nth-child(2){ animation-delay:0.7s; animation-duration:3.5s; }
+.a4-biomass:nth-child(3){ animation-delay:1.4s; animation-duration:4.5s; }
+.a4-biomass:nth-child(4){ animation-delay:0.3s; animation-duration:3.8s; }
+.a4-water-dot { animation: a4-water-cross 1.8s linear infinite; }
+.a4-water-dot:nth-child(2){ animation-delay:0.4s; }
+.a4-water-dot:nth-child(3){ animation-delay:0.8s; }
+.a4-water-dot:nth-child(4){ animation-delay:1.2s; }
+.a4-water-dot:nth-child(5){ animation-delay:1.6s; }
+.a4-membrane-fiber { animation: a4-membrane-glow 2.5s ease-in-out infinite; }
+.a4-membrane-fiber:nth-child(2){ animation-delay:0.4s; }
+.a4-membrane-fiber:nth-child(3){ animation-delay:0.8s; }
+.a4-reject { animation: a4-reject-pulse 2s ease-in-out infinite; }
+.a4-reject:nth-child(2){ animation-delay:0.3s; }
+.a4-reject:nth-child(3){ animation-delay:0.6s; }
+/* ── WATERMARK ── */
+#watermark {
+  position: fixed;
+  bottom: 18px;
+  right: 12px;
+  z-index: 9999;
+  font-family: 'Noto Sans SC', monospace;
+  font-size: 11px;
+  color: rgba(0,229,176,0.35);
+  letter-spacing: .06em;
+  pointer-events: none;
+  user-select: none;
+  line-height: 1.7;
+  text-align: right;
+}
+</style>
+</style>
+</head>
+<!-- WATERMARK:Author:赵敏乔 · 孙文韬 — do not remove -->
+<div id="watermark">
+  制作人：赵敏乔 · 孙文韬 <br>Author:Minqiao Zhao & Wentao Sun<br>
+  <span style="font-size:9px;opacity:.7;letter-spacing:.04em">版权所有 Copyright © 2026</span>
+</div>
+<body>
+<div id="app">
+
+  <!-- LEFT: Mindmap Nav (hidden until S3 completes) -->
+  <div id="mindmap-nav" class="hidden">
+    <div id="mm-nav-inner">
+      <div class="mm-title">📍 Navigation</div>
+      <div class="mm-node active" onclick="goTo('s1')" id="mm-s1">S1 · Title</div>
+      <div class="mm-node" onclick="goTo('s2')" id="mm-s2">S2 · Waste vs. Water</div>
+      <div class="mm-node" onclick="goTo('s3')" id="mm-s3">S3 · Meet Xiao Nong</div>
+      <div class="mm-node" onclick="goTo('s4')" id="mm-s4">S4 · Anaerobic vs Anoxic</div>
+      <div class="mm-section">Route A — COD</div>
+      <div class="mm-node mm-node-sub amber" onclick="goTo('a1')" id="mm-a1">A1 · Biogas Pit + CSTR</div>
+      <div class="mm-node mm-node-sub amber" onclick="goTo('a2')" id="mm-a2">A2 · UASB</div>
+      <div class="mm-node mm-node-sub amber" onclick="goTo('a3')" id="mm-a3">A3 · EGSB</div>
+      <div class="mm-node mm-node-sub amber" onclick="goTo('a4')" id="mm-a4">A4 · EGSB + AnMBR</div>
+      <div class="mm-section">Route B — N&amp;P</div>
+      <div class="mm-node mm-node-sub blue" onclick="goTo('b1')" id="mm-b1">B1 · A²/O</div>
+      <div class="mm-node mm-node-sub blue" onclick="goTo('b2')" id="mm-b2">B2 · Anammox</div>
+      <div class="mm-section">Closing</div>
+      <div class="mm-node" onclick="goTo('sc')" id="mm-sc">Final · Compare &amp; Recap</div>
+      <div class="mm-node" onclick="goTo('ref')" id="mm-ref">References</div>
+      <div class="mm-node" onclick="goTo('sq')" id="mm-sq">Q&amp;A</div>
+    </div>
+  </div>
+
+  <!-- MIDDLE: Main content -->
+  <div id="main-wrap">
+    <div id="content">
+
+      <!-- ══════════════════════════════════════
+           S1: TITLE
+      ══════════════════════════════════════ -->
+      <div class="slide active" id="slide-s1">
+        <div class="title-hero">
+          <div class="slide-tag">Group Presentation · Biochemistry</div>
+          <div class="hero-main"><em>Anaerobic</em> and <em>Anoxic</em><br>Biotreatment of Waste</div>
+          <div class="hero-sub">How microbes turn <strong>waste into resources</strong> — a journey through treatment technologies</div>
+          <div class="char-cards">
+            <div class="char-card">
+              <div class="char-role">Character A · 甲</div>
+              <div class="char-name amber">Xiao Nong 小浓</div>
+              <div class="char-desc">High-strength organic wastewater.<br>Our protagonist on this journey.</div>
+            </div>
+            <div class="char-card">
+              <div class="char-role">Character B · 乙</div>
+              <div class="char-name">Dr. Bio</div>
+              <div class="char-desc">Environmental engineer &amp; guide.<br>Explains the science along the way.</div>
+            </div>
+          </div>
+          <div class="img-ph">
+            <img src="images/S1_birth.jpg" alt="Title image "style="width:80%;border-radius:8px">
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           S2: WASTE vs POLLUTED WATER
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-s2">
+        <div class="slide-tag">02 — Foundation</div>
+        <div class="slide-title">What is <strong>Waste</strong>?</div>
+        <div class="slide-lead">Not all wastewater is "high-potential" — the distinction matters for <strong>how we treat it</strong></div>
+
+        <div class="grid-2">
+          <div class="card" style="border-color:rgba(224,92,58,.35)">
+            <div class="card-label rust">💧 Weak sewage</div>
+            <div class="kw amber"><em>Low</em> concentration</div>
+            <div style="height:10px"></div>
+            <ul class="blist">
+              <li>COD typically <strong>&lt; 200 mg/L</strong></li>
+              <li>Urban runoff, <strong>domestic sewage</strong></li>
+              <li>Pollutant as <strong>nuisance</strong></li>
+              <li>Goal: remove &amp; discharge</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color:rgba(0,229,176,.35)">
+            <div class="card-label">🏭 Wastewater (High-Strength)</div>
+            <div class="kw"><em>High</em> concentration</div>
+            <div style="height:10px"></div>
+            <ul class="blist">
+              <li>COD typically <strong>&gt; 1,000 mg/L</strong></li>
+              <li>Breweries, food processing, <strong>landfill leachate</strong></li>
+              <li>Pollutant as <strong>potential resource</strong></li>
+              <li>Goal: treat <strong>AND recover</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="hl-box green">
+          <strong>Key insight:</strong> High-strength "waste" contains chemical energy — <strong>COD = stored energy waiting to be harvested</strong>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Why biotreatment?</div>
+          <ul class="blist">
+            <li>Microorganisms <strong>naturally break down</strong> organic compounds</li>
+            <li>Can be engineered to <strong>recover energy</strong> (biogas) and <strong>nutrients</strong> (N, P)</li>
+            <li>Lower energy input than chemical/physical treatment for <strong>high-strength waste</strong></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           S3: MEET XIAO NONG — mindmap expand
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-s3">
+        <div class="slide-tag">03 — Meet the Protagonist</div>
+        <div class="slide-title">Xiao Nong's <strong>Profile</strong></div>
+        <div class="slide-lead">High-strength wastewater from a brewery — <strong>high concentration sometimes can = high potential</strong></div>
+
+        <div class="grid-3">
+          <div class="card" style="border-color:rgba(224,92,58,.4)">
+            <div class="card-label rust">⚠ High COD</div>
+            <div class="kw amber"><em>5,000</em> mg/L</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px">Organic matter — depletes O₂ in rivers, kills fish</div>
+            <div style="font-size:12px;color:var(--green);margin-top:6px">→ <strong>Energy potential</strong></div>
+          </div>
+          <div class="card" style="border-color:rgba(91,184,245,.4)">
+            <div class="card-label blue">⚠ High NH₄⁺</div>
+            <div class="kw blue"><em>200+</em> mg/L</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px">Ammonia nitrogen — toxic to aquatic life, causes eutrophication</div>
+            <div style="font-size:12px;color:var(--green);margin-top:6px">→ <strong>Nitrogen resource</strong></div>
+          </div>
+          <div class="card" style="border-color:rgba(255,184,48,.4)">
+            <div class="card-label amber">⚠ High P</div>
+            <div class="kw amber"><em>30+</em> mg/L</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:8px">Phosphorus — triggers algal blooms, eutrophication</div>
+            <div style="font-size:12px;color:var(--green);margin-top:6px">→ <strong>Fertilizer potential</strong></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+          <div class="img-ph" style="margin:0">
+            <img src="images/S3_1origin.jpg" alt="Xiao Nong origin" style="width:100%;border-radius:8px">
+          </div>
+          <div class="img-ph" style="margin:0">
+            <img src="images/S3_2origin.jpg" alt="Xiao Nong origin 2" style="width:100%;border-radius:8px">
+          </div>
+        </div>
+        <div class="hl-box amber" style="font-size:18px;text-align:center;padding:20px">
+          <strong>High concentration ——&gt; High potential</strong><br>
+          <span style="font-size:14px;color:var(--text2)">The bigger the problem, the bigger the opportunity for resource recovery</span>
+        </div>
+
+        <div style="text-align:center;margin-top:24px">
+          <button class="nav-btn next" onclick="expandMindmap()" style="font-size:15px;padding:12px 36px">
+            🌿 Explore Treatment Routes →
+          </button>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           S4: ANAEROBIC vs ANOXIC
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-s4">
+        <div class="slide-tag">04 — Core Concepts</div>
+        <div class="slide-title"><strong>Anaerobic</strong> vs <strong>Anoxic</strong></div>
+        <div class="slide-lead">Two oxygen-free environments — completely different microbial strategies</div>
+
+<!-- S4 DRAG & DROP QUIZ -->
+<div id="s4-quiz" style="margin-bottom:28px">
+  <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--green);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px">
+    Quick check — drag each label to the correct environment
+  </div>
+
+  <!-- Drop zones -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+    <div id="drop-anaerobic"
+      ondragover="event.preventDefault()"
+      ondrop="s4Drop(event,'anaerobic')"
+      style="border:2px dashed var(--text3);border-radius:12px;padding:24px 16px;text-align:center;min-height:80px;transition:all .25s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+      <div style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;letter-spacing:.08em">DROP ZONE A</div>
+      <div id="drop-a-label" style="font-size:22px;font-weight:800;color:var(--text3)">?</div>
+    </div>
+    <div id="drop-anoxic"
+      ondragover="event.preventDefault()"
+      ondrop="s4Drop(event,'anoxic')"
+      style="border:2px dashed var(--text3);border-radius:12px;padding:24px 16px;text-align:center;min-height:80px;transition:all .25s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+      <div style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;letter-spacing:.08em">DROP ZONE B</div>
+      <div id="drop-b-label" style="font-size:22px;font-weight:800;color:var(--text3)">?</div>
+    </div>
+  </div>
+
+  <!-- Clue cards under drop zones -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text2);line-height:1.6">
+      <div style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-bottom:6px">ZONE A clues</div>
+      Zero O₂ · produces <strong>CH₄</strong> · electron acceptor: CO₂
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text2);line-height:1.6">
+      <div style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-bottom:6px">ZONE B clues</div>
+      No O₂ · has <strong>NO₃⁻</strong> · produces <strong>N₂</strong>
+    </div>
+  </div>
+
+  <!-- Draggable answer chips -->
+  <div style="display:flex;gap:12px;justify-content:center;margin-bottom:14px" id="s4-chips">
+    <div id="chip-anaerobic" draggable="true"
+      ondragstart="s4DragStart(event,'anaerobic')"
+      style="padding:10px 28px;border-radius:40px;border:1.5px solid var(--green);background:var(--green-dim);color:var(--green);font-family:'Space Mono',monospace;font-size:13px;font-weight:700;cursor:grab;user-select:none;transition:all .2s">
+      ANAEROBIC
+    </div>
+    <div id="chip-anoxic" draggable="true"
+      ondragstart="s4DragStart(event,'anoxic')"
+      style="padding:10px 28px;border-radius:40px;border:1.5px solid var(--blue);background:var(--blue-dim);color:var(--blue);font-family:'Space Mono',monospace;font-size:13px;font-weight:700;cursor:grab;user-select:none;transition:all .2s">
+      ANOXIC
+    </div>
+  </div>
+
+  <!-- Result message -->
+  <div id="s4-result" style="text-align:center;font-size:14px;font-weight:700;min-height:24px;font-family:'Space Mono',monospace;letter-spacing:.05em"></div>
+
+  <!-- Reset button (hidden until answered) -->
+  <div style="text-align:center;margin-top:10px">
+    <button id="s4-reset" onclick="s4Reset()" style="display:none;padding:7px 20px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">
+      ↺ Try again
+    </button>
+  </div>
+</div>
+
+<script>
+// ── S4 DRAG & DROP ──
+let s4Answers = { anaerobic: null, anoxic: null };
+let s4Dragging = null;
+
+function s4DragStart(e, label) {
+  s4Dragging = label;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function s4Drop(e, zone) {
+  e.preventDefault();
+  if (!s4Dragging) return;
+
+  // Place chip text into drop zone label
+  const labelEl = zone === 'anaerobic'
+    ? document.getElementById('drop-a-label')
+    : document.getElementById('drop-b-label');
+  const zoneEl = zone === 'anaerobic'
+    ? document.getElementById('drop-anaerobic')
+    : document.getElementById('drop-anoxic');
+
+  labelEl.textContent = s4Dragging.toUpperCase();
+  labelEl.style.color = s4Dragging === 'anaerobic' ? 'var(--green)' : 'var(--blue)';
+
+  // Hide the dragged chip
+  document.getElementById('chip-' + s4Dragging).style.opacity = '0.2';
+  document.getElementById('chip-' + s4Dragging).style.pointerEvents = 'none';
+
+  s4Answers[zone] = s4Dragging;
+  s4Dragging = null;
+
+  // Check if both zones filled
+  if (s4Answers.anaerobic && s4Answers.anoxic) {
+    s4Check();
+  }
+}
+
+function s4Check() {
+  const correct = s4Answers.anaerobic === 'anaerobic' && s4Answers.anoxic === 'anoxic';
+  const resultEl = document.getElementById('s4-result');
+  const zoneA = document.getElementById('drop-anaerobic');
+  const zoneB = document.getElementById('drop-anoxic');
+
+  if (correct) {
+    resultEl.textContent = '✓ Correct! Anaerobic = zero O₂ + CH₄   |   Anoxic = no O₂ + NO₃⁻ + N₂';
+    resultEl.style.color = 'var(--green)';
+    zoneA.style.borderColor = 'var(--green)';
+    zoneA.style.background = 'var(--green-dim)';
+    zoneB.style.borderColor = 'var(--blue)';
+    zoneB.style.background = 'var(--blue-dim)';
+  } else {
+    resultEl.textContent = '✗ Not quite — check the clues and try again';
+    resultEl.style.color = 'var(--rust)';
+    zoneA.style.borderColor = 'var(--rust)';
+    zoneB.style.borderColor = 'var(--rust)';
+    // Shake animation
+    zoneA.style.animation = 'shake .4s ease';
+    zoneB.style.animation = 'shake .4s ease';
+    setTimeout(() => {
+      zoneA.style.animation = '';
+      zoneB.style.animation = '';
+    }, 400);
+  }
+  document.getElementById('s4-reset').style.display = 'inline-block';
+}
+
+function s4Reset() {
+  s4Answers = { anaerobic: null, anoxic: null };
+  s4Dragging = null;
+  document.getElementById('drop-a-label').textContent = '?';
+  document.getElementById('drop-a-label').style.color = 'var(--text3)';
+  document.getElementById('drop-b-label').textContent = '?';
+  document.getElementById('drop-b-label').style.color = 'var(--text3)';
+  document.getElementById('drop-anaerobic').style.borderColor = 'var(--text3)';
+  document.getElementById('drop-anaerobic').style.background = 'transparent';
+  document.getElementById('drop-anoxic').style.borderColor = 'var(--text3)';
+  document.getElementById('drop-anoxic').style.background = 'transparent';
+  document.getElementById('s4-result').textContent = '';
+  document.getElementById('s4-reset').style.display = 'none';
+  document.getElementById('chip-anaerobic').style.opacity = '1';
+  document.getElementById('chip-anaerobic').style.pointerEvents = 'auto';
+  document.getElementById('chip-anoxic').style.opacity = '1';
+  document.getElementById('chip-anoxic').style.pointerEvents = 'auto';
+}
+</script>
+
+<!-- shake keyframe (add once anywhere in the file if not already present) -->
+<style>
+@keyframes shake {
+  0%,100%{ transform:translateX(0) }
+  25%    { transform:translateX(-8px) }
+  75%    { transform:translateX(8px) }
+}
+</style>
+        <div class="grid-2">
+          <div class="card" style="border-color:rgba(0,229,176,.4);background:rgba(0,229,176,.04)">
+            <div class="card-label" style="font-size:13px;letter-spacing:.05em">⚫ ANAEROBIC</div>
+            <div class="kw" style="font-size:26px"><em>Zero</em> O</div>
+            <div class="divider"></div>
+            <ul class="blist">
+              <li><strong>No</strong> (strictly zero)</li>
+              <li>Electron acceptor: <strong>CO₂ / organic compounds</strong></li>
+              <li>End product: <strong>CH₄ + CO₂ (biogas)</strong></li>
+              <li>Carbon source: Organic matter (oxidised)</li>
+              <li>Use: <strong>COD removal &amp; energy</strong></li>
+            </ul>
+          </div>
+          <div class="card" style="border-color:rgba(91,184,245,.4);background:rgba(91,184,245,.04)">
+            <div class="card-label blue" style="font-size:13px;letter-spacing:.05em">🔵 ANOXIC</div>
+            <div class="kw blue" style="font-size:26px"><em>No</em> O, <em>has</em> NO₃⁻</div>
+            <div class="divider"></div>
+            <ul class="blist">
+              <li><strong>No</strong> (but NO₃⁻ present)</li>
+              <li>Electron acceptor: <strong>NO₃⁻ or NO₂⁻</strong></li>
+              <li>End product: <strong>N₂ gas</strong></li>
+              <li>Carbon source: Organic matter (as electron donor)</li>
+              <li>Use: <strong>Nitrogen removal</strong></li>
+            </ul>
+          </div>
+        </div>
+
+
+            <div class="hl-box green" style="margin-top:16px">
+          <strong>A²/O note:</strong> Real systems like A²/O combine <strong>Anaerobic + Anoxic + Oxic</strong> zones — no single environment handles everything alone
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           A1: BIOGAS PIT + CSTR
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-a1">
+        <div class="slide-tag">Route A · Stop 1</div>
+        <div class="slide-title">The <strong>Biogas Pit</strong> Era</div>
+        <div class="slide-lead">The original anaerobic reactor — slow but foundational. <strong>CSTR</strong> (Continuously Stirred Tank Reactor) is its engineered upgrade.</div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab(this,'a1-mech')">⚙ Mechanism</button>
+          <button class="tab" onclick="switchTab(this,'a1-solved')">✅ Solved</button>
+          <button class="tab" onclick="switchTab(this,'a1-limits')">⚠ Limitations</button>
+          <button class="tab" onclick="switchTab(this,'a1-compare')">📊 Compare</button>
+        </div>
+
+        <div class="tab-panel active" id="a1-mech">
+
+          <!-- 1. 沼气池图片（顶部预留） -->
+          <div class="card-label" style="margin-bottom:8px">📷 Biogas Pit — 沼气池</div>
+          <div class="img-ph" style="margin-bottom:16px">
+            <img src="images/A1_沼气池.png" alt="Biogas pit photo" style="width:60%;border-radius:8px">
+          </div>
+
+          <!-- 2. 四阶段流程SVG -->
+          <div class="kw" style="margin-bottom:12px">4-Stage <em>Relay</em> Reaction</div>
+          <div class="svg-wrap">
+            <svg id="svg-a1" width="100%" viewBox="0 0 680 420" style="background:#0c1a25">
+              <defs>
+                <marker id="arr-a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+
+              <!-- Stage boxes — IDs for JS control -->
+              <g id="a1-box1">
+                <rect x="30" y="90" width="130" height="56" rx="8" fill="rgba(186,117,23,0.18)" stroke="#BA7517" stroke-width="0.8"/>
+                <text x="95" y="112" text-anchor="middle" dominant-baseline="central" fill="#FAC775" font-family="sans-serif" font-size="14" font-weight="500">Hydrolysis</text>
+                <text x="95" y="130" text-anchor="middle" dominant-baseline="central" fill="#BA7517" font-family="sans-serif" font-size="12">水解  ①</text>
+              </g>
+              <g id="a1-box2">
+                <rect x="195" y="90" width="130" height="56" rx="8" fill="rgba(186,117,23,0.18)" stroke="#BA7517" stroke-width="0.8"/>
+                <text x="260" y="112" text-anchor="middle" dominant-baseline="central" fill="#FAC775" font-family="sans-serif" font-size="14" font-weight="500">Acidogenesis</text>
+                <text x="260" y="130" text-anchor="middle" dominant-baseline="central" fill="#BA7517" font-family="sans-serif" font-size="12">产酸  ②</text>
+              </g>
+              <g id="a1-box3">
+                <rect x="360" y="90" width="130" height="56" rx="8" fill="rgba(186,117,23,0.18)" stroke="#BA7517" stroke-width="0.8"/>
+                <text x="425" y="112" text-anchor="middle" dominant-baseline="central" fill="#FAC775" font-family="sans-serif" font-size="14" font-weight="500">Acetogenesis</text>
+                <text x="425" y="130" text-anchor="middle" dominant-baseline="central" fill="#BA7517" font-family="sans-serif" font-size="12">产乙酸  ③</text>
+              </g>
+              <g id="a1-box4">
+                <rect x="524" y="90" width="130" height="56" rx="8" fill="rgba(15,110,86,0.22)" stroke="#1D9E75" stroke-width="0.8"/>
+                <text x="589" y="108" text-anchor="middle" dominant-baseline="central" fill="#9FE1CB" font-family="sans-serif" font-size="13" font-weight="500">Methano-</text>
+                <text x="589" y="123" text-anchor="middle" dominant-baseline="central" fill="#9FE1CB" font-family="sans-serif" font-size="13" font-weight="500">genesis</text>
+                <text x="589" y="140" text-anchor="middle" dominant-baseline="central" fill="#1D9E75" font-family="sans-serif" font-size="12">产甲烷  ④</text>
+              </g>
+
+              <!-- Animated flow arrows between stages -->
+              <line class="a1-arrow-anim" x1="162" y1="118" x2="193" y2="118" stroke="#BA7517" stroke-width="1.8" marker-end="url(#arr-a1)"/>
+              <line class="a1-arrow-anim" x1="327" y1="118" x2="358" y2="118" stroke="#BA7517" stroke-width="1.8" marker-end="url(#arr-a1)" style="animation-delay:0.2s"/>
+              <line class="a1-arrow-anim" x1="492" y1="118" x2="522" y2="118" stroke="#BA7517" stroke-width="1.8" marker-end="url(#arr-a1)" style="animation-delay:0.4s"/>
+
+              <!-- Input -->
+              <text x="95" y="68" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">Organic waste in</text>
+              <line x1="95" y1="78" x2="95" y2="88" stroke="#6e95b0" stroke-width="1.2" marker-end="url(#arr-a1)"/>
+
+              <!-- CO2 badges -->
+              <rect x="210" y="71" width="52" height="16" rx="4" fill="rgba(147,60,29,0.25)" stroke="#993C1D" stroke-width="0.5"/>
+              <text x="236" y="79" text-anchor="middle" dominant-baseline="central" fill="#F0997B" font-family="sans-serif" font-size="11">+ CO₂</text>
+              <rect x="375" y="71" width="52" height="16" rx="4" fill="rgba(147,60,29,0.25)" stroke="#993C1D" stroke-width="0.5"/>
+              <text x="401" y="79" text-anchor="middle" dominant-baseline="central" fill="#F0997B" font-family="sans-serif" font-size="11">+ CO₂</text>
+
+              <!-- Substrate labels -->
+              <g id="a1-sub1" opacity="0">
+                <text x="95" y="162" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">Polymers → monomers</text>
+                <text x="95" y="177" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">(sugars, amino acids)</text>
+              </g>
+              <g id="a1-sub2" opacity="0">
+                <text x="260" y="162" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">Monomers → VFAs</text>
+                <text x="260" y="177" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">(propionate, butyrate) + H₂</text>
+              </g>
+              <g id="a1-sub3" opacity="0">
+                <text x="425" y="162" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">VFAs → acetate + H₂</text>
+                <text x="425" y="177" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">(decarboxylation)</text>
+              </g>
+              <g id="a1-sub4" opacity="0">
+                <text x="589" y="162" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">Acetate + H₂ → CH₄</text>
+                <text x="589" y="177" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="12">+ CO₂</text>
+              </g>
+
+              <!-- Divider -->
+              <line x1="30" y1="200" x2="655" y2="200" stroke="rgba(0,229,176,0.15)" stroke-width="0.8"/>
+              <text x="30" y="214" dominant-baseline="central" fill="#2e4a5e" font-family="sans-serif" font-size="12">Example equations</text>
+
+              <!-- Equation boxes -->
+              <g id="a1-eq1" opacity="0">
+                <rect x="30" y="228" width="140" height="46" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(0,229,176,0.15)" stroke-width="0.5"/>
+                <text x="100" y="244" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">① Starch + H₂O</text>
+                <text x="100" y="262" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">→ glucose (C₆H₁₂O₆)</text>
+              </g>
+              <g id="a1-eq2" opacity="0">
+                <rect x="182" y="228" width="168" height="46" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(0,229,176,0.15)" stroke-width="0.5"/>
+                <text x="266" y="244" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">② C₆H₁₂O₆ → butyrate</text>
+                <text x="266" y="262" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">+ 2H₂ + 2CO₂</text>
+              </g>
+              <g id="a1-eq3" opacity="0">
+                <rect x="362" y="228" width="180" height="46" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(0,229,176,0.15)" stroke-width="0.5"/>
+                <text x="452" y="244" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">③ CH₃CH₂COO⁻ + 2H₂O</text>
+                <text x="452" y="262" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">→ acetate + 3H₂ + CO₂</text>
+              </g>
+              <g id="a1-eq4" opacity="0">
+                <rect x="554" y="228" width="100" height="46" rx="6" fill="rgba(15,110,86,0.12)" stroke="rgba(29,158,117,0.4)" stroke-width="0.5"/>
+                <text x="604" y="244" text-anchor="middle" dominant-baseline="central" fill="#9FE1CB" font-family="sans-serif" font-size="12">④ CH₃COO⁻</text>
+                <text x="604" y="262" text-anchor="middle" dominant-baseline="central" fill="#9FE1CB" font-family="sans-serif" font-size="12">→ CH₄ + CO₂</text>
+              </g>
+
+              <!-- Biogas out -->
+              <line x1="589" y1="148" x2="589" y2="226" stroke="#1D9E75" stroke-width="1.2" marker-end="url(#arr-a1)"/>
+              <text x="648" y="185" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">Biogas</text>
+              <text x="648" y="200" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">out</text>
+
+              <!-- Rate-limiting -->
+              <rect x="522" y="286" width="132" height="22" rx="4" fill="none" stroke="rgba(29,158,117,0.35)" stroke-width="0.5" stroke-dasharray="3 2"/>
+              <text x="588" y="297" text-anchor="middle" dominant-baseline="central" fill="#1D9E75" font-family="sans-serif" font-size="11">⚠ rate-limiting step</text>
+
+              <!-- Overall equation -->
+              <rect x="30" y="324" width="620" height="56" rx="8" fill="rgba(15,110,86,0.12)" stroke="rgba(29,158,117,0.3)" stroke-width="0.8"/>
+              <text x="340" y="344" text-anchor="middle" dominant-baseline="central" fill="#9FE1CB" font-family="sans-serif" font-size="14" font-weight="500">Overall</text>
+              <text x="340" y="363" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">C₆H₁₂O₆ → 3CH₄ + 3CO₂</text>
+            </svg>
+          </div>
+
+          <!-- Step controller -->
+          <div style="display:flex;align-items:center;gap:12px;margin:12px 0 8px;flex-wrap:wrap">
+            <button onclick="a1Step(1)" style="padding:6px 16px;border-radius:20px;border:1px solid rgba(186,117,23,0.4);background:rgba(186,117,23,0.1);color:#FAC775;font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">① Hydrolysis</button>
+            <button onclick="a1Step(2)" style="padding:6px 16px;border-radius:20px;border:1px solid rgba(186,117,23,0.4);background:rgba(186,117,23,0.1);color:#FAC775;font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">② Acidogenesis</button>
+            <button onclick="a1Step(3)" style="padding:6px 16px;border-radius:20px;border:1px solid rgba(186,117,23,0.4);background:rgba(186,117,23,0.1);color:#FAC775;font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">③ Acetogenesis</button>
+            <button onclick="a1Step(4)" style="padding:6px 16px;border-radius:20px;border:1px solid rgba(29,158,117,0.4);background:rgba(29,158,117,0.1);color:#9FE1CB;font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">④ Methanogenesis</button>
+            <button onclick="a1Step(0)" style="padding:6px 16px;border-radius:20px;border:1px solid rgba(0,229,176,0.2);background:transparent;color:#6e95b0;font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">Show all</button>
+          </div>
+
+          <!-- 3. CSTR图片（底部预留） -->
+          <div class="card-label" style="margin:16px 0 8px">📷 CSTR Reactor — 连续搅拌反应器</div>
+          <div class="img-ph" style="margin-bottom:16px">
+            <img src="images/A1_CSTR.png" alt="CSTR reactor structure" style="width:75%;border-radius:8px">
+          </div>
+
+         <!-- CSTR QUIZ -->
+<div id="cstr-quiz" style="margin:16px 0 20px">
+  <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--amber);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px">
+    Quick check — what does the stirrer actually do in a CSTR?
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px" id="cstr-options">
+    <div class="cstr-opt" onclick="cstrAnswer(this,'wrong')"
+      style="padding:13px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:14px;cursor:pointer;transition:all .2s">
+      A · It pumps wastewater in and out of the reactor
+    </div>
+    <div class="cstr-opt" onclick="cstrAnswer(this,'wrong')"
+      style="padding:13px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:14px;cursor:pointer;transition:all .2s">
+      B · It separates biogas from the liquid
+    </div>
+    <div class="cstr-opt" onclick="cstrAnswer(this,'correct')"
+      style="padding:13px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:14px;cursor:pointer;transition:all .2s">
+      C · It keeps the contents uniformly mixed — preventing dead zones and improving microbe-substrate contact
+    </div>
+    <div class="cstr-opt" onclick="cstrAnswer(this,'wrong')"
+      style="padding:13px 18px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:14px;cursor:pointer;transition:all .2s">
+      D · It heats the reactor to optimal temperature
+    </div>
+  </div>
+
+  <!-- Explanation (hidden until answered) -->
+  <div id="cstr-explain" style="display:none;margin-top:14px;padding:14px 18px;border-radius:10px;background:var(--green-dim);border-left:3px solid var(--green);font-size:13px;color:var(--text);line-height:1.7">
+    <strong>Why it matters:</strong> Without mixing, heavy sludge settles at the bottom and fresh wastewater short-circuits straight to the outlet — microbes never contact their substrate. 
+    The stirrer creates a <strong>uniform concentration everywhere</strong>, so every microbe has equal access to food. 
+    This is the key upgrade from a simple biogas pit → CSTR.
+  </div>
+
+  <!-- Reset -->
+  <div style="margin-top:10px">
+    <button id="cstr-reset" onclick="cstrReset()" style="display:none;padding:7px 20px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">
+      ↺ Try again
+    </button>
+  </div>
+</div>
+
+<script>
+// ── CSTR QUIZ ──
+let cstrDone = false;
+
+function cstrAnswer(el, type) {
+  if (cstrDone) return;
+  cstrDone = true;
+
+  const opts = document.querySelectorAll('.cstr-opt');
+  opts.forEach(o => {
+    o.style.cursor = 'default';
+    o.style.pointerEvents = 'none';
+  });
+
+  if (type === 'correct') {
+    el.style.borderColor = 'var(--green)';
+    el.style.background = 'var(--green-dim)';
+    el.style.color = 'var(--green)';
+    el.textContent = '✓ ' + el.textContent;
+  } else {
+    el.style.borderColor = 'var(--rust)';
+    el.style.background = 'var(--rust-dim)';
+    el.style.color = 'var(--rust)';
+    el.textContent = '✗ ' + el.textContent;
+    // Highlight correct answer
+    opts.forEach(o => {
+      if (o.getAttribute('onclick').includes('correct')) {
+        o.style.borderColor = 'var(--green)';
+        o.style.background = 'var(--green-dim)';
+        o.style.color = 'var(--green)';
+      }
+    });
+  }
+
+  document.getElementById('cstr-explain').style.display = 'block';
+  document.getElementById('cstr-reset').style.display = 'inline-block';
+}
+
+function cstrReset() {
+  cstrDone = false;
+  const opts = document.querySelectorAll('.cstr-opt');
+  const origText = [
+    'A · It pumps wastewater in and out of the reactor',
+    'B · It separates biogas from the liquid',
+    'C · It keeps the contents uniformly mixed — preventing dead zones and improving microbe-substrate contact',
+    'D · It heats the reactor to optimal temperature'
+  ];
+  opts.forEach((o, i) => {
+    o.style.borderColor = 'var(--border)';
+    o.style.background = 'var(--bg3)';
+    o.style.color = 'var(--text2)';
+    o.style.cursor = 'pointer';
+    o.style.pointerEvents = 'auto';
+    o.textContent = origText[i];
+  });
+  document.getElementById('cstr-explain').style.display = 'none';
+  document.getElementById('cstr-reset').style.display = 'none';
+}
+</script>
+
+          <div class="hl-box amber"><strong>CSTR upgrade:</strong> Adds mechanical mixing → more uniform environment, prevents dead zones, slightly faster than open pit</div>
+          <div class="pills">
+            <div class="pill">HRT: <b>20–30 days</b></div>
+            <div class="pill">COD removal: <b>~50–70%</b></div>
+            <div class="pill">Biogas: <b>60% CH₄</b></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="a1-solved">
+          <ul class="blist" style="margin-top:8px">
+            <li><strong>First proof</strong> that high-COD waste → biogas energy is possible</li>
+            <li>Established the <strong>4-stage anaerobic pathway</strong> — still the basis of all anaerobic processes</li>
+            <li>Significant <strong>COD reduction</strong> without chemical inputs</li>
+            <li>Biogas can <strong>power the treatment plant itself</strong></li>
+          </ul>
+          <div class="hl-box green" style="margin-top:16px"><strong>Conceptual breakthrough:</strong> Waste = energy source</div>
+        </div>
+
+        <div class="tab-panel" id="a1-limits">
+          <ul class="blist" style="margin-top:8px">
+            <li><strong>HRT 20–30 days</strong> — enormous reactor volume needed</li>
+            <li>Microbes are <strong>not retained</strong> — wash out with effluent</li>
+            <li><strong>No N or P removal</strong> — only handles COD</li>
+            <li>Low biomass concentration → <strong>low reaction rate</strong></li>
+          </ul>
+          <div class="hl-box rust" style="margin-top:16px"><strong>Core problem:</strong> Microbes leave the reactor — you can't keep them working</div>
+        </div>
+
+        <div class="tab-panel" id="a1-compare">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:10px;font-family:'Space Mono',monospace">Comparison will grow as you learn more technologies</div>
+          <table class="vs-table">
+            <tr><th>Parameter</th><th class="amber">Biogas Pit / CSTR</th></tr>
+            <tr><td class="feature">HRT</td><td><strong>20–30 days</strong></td></tr>
+            <tr><td class="feature">Biomass retention</td><td>❌ Poor (washout)</td></tr>
+            <tr><td class="feature">COD removal</td><td>50–70%</td></tr>
+            <tr><td class="feature">Reactor volume</td><td>Very large</td></tr>
+            <tr><td class="feature">N &amp; P removal</td><td>❌ None</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           A2: UASB
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-a2">
+        <div class="slide-tag">Route A · Stop 2</div>
+        <div class="slide-title">The <strong>UASB</strong> Revolution</div>
+        <div class="slide-lead">Up-flow Anaerobic Sludge Blanket — Prof. Lettinga's 1970s breakthrough that <strong>changed everything</strong></div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab(this,'a2-mech')">⚙ Mechanism</button>
+          <button class="tab" onclick="switchTab(this,'a2-solved')">✅ Solved</button>
+          <button class="tab" onclick="switchTab(this,'a2-limits')">⚠ Limitations</button>
+          <button class="tab" onclick="switchTab(this,'a2-compare')">📊 Compare</button>
+        </div>
+
+        <div class="tab-panel active" id="a2-mech">
+          <div class="kw" style="margin-bottom:16px">Key Innovation: <em>Keep the Microbes</em></div>
+          <div class="grid-2">
+            <div class="card" style="border-color:rgba(255,184,48,.3)">
+              <div class="card-label amber">Innovation 1</div>
+              <div class="kw amber" style="font-size:20px"><em>Granular Sludge</em></div>
+              <div style="font-size:14px;color:var(--text2);margin-top:8px">Microbes self-aggregate into dense granules (1–3 mm). Dense enough to <strong>settle against upward flow</strong> — retained in reactor.</div>
+            </div>
+            <div class="card" style="border-color:rgba(0,229,176,.3)">
+              <div class="card-label">Innovation 2</div>
+              <div class="kw" style="font-size:20px"><em>Three-Phase Separator</em></div>
+              <div style="font-size:14px;color:var(--text2);margin-top:8px">V-shaped baffle at top: <strong>separates gas ↑, liquid →, sludge ↓</strong> simultaneously — no moving parts.</div>
+            </div>
+          </div>
+          <!-- ANIMATED UASB SVG -->
+          <div class="svg-wrap">
+            <svg width="100%" viewBox="0 0 680 430" style="background:#0c1a25">
+              <defs>
+                <marker id="arr-a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+                <clipPath id="a2-reactor-clip">
+                  <rect x="190" y="30" width="230" height="330" rx="8"/>
+                </clipPath>
+              </defs>
+
+              <!-- Reactor vessel -->
+              <rect x="190" y="30" width="230" height="330" rx="8" fill="none" stroke="rgba(0,229,176,0.2)" stroke-width="0.8" stroke-dasharray="6 3"/>
+              <text x="1" y="22" fill="#2e4a5e" font-family="sans-serif" font-size="12">Reactor vessel</text>
+
+              <!-- Animated influent flow line -->
+              <line class="a2-influent" x1="100" y1="345" x2="188" y2="345" stroke="#00e5b0" stroke-width="2" marker-end="url(#arr-a2)"/>
+              <text x="92" y="338" text-anchor="end" fill="#00e5b0" font-family="sans-serif" font-size="12">Influent</text>
+
+              <!-- Sludge bed -->
+              <rect x="190" y="250" width="230" height="110" fill="rgba(186,117,23,0.12)" stroke="rgba(186,117,23,0.35)" stroke-width="0.8"/>
+              <text x="305" y="308" text-anchor="middle" dominant-baseline="central" fill="#BA7517" font-family="sans-serif" font-size="13" font-weight="500">Granular sludge bed</text>
+
+              <!-- Granules (animated bob) -->
+              <g clip-path="url(#a2-reactor-clip)">
+                <circle class="a2-granule" cx="225" cy="268" r="7" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="252" cy="278" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="280" cy="266" r="7" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="308" cy="275" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="336" cy="265" r="7" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="363" cy="276" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="238" cy="293" r="6" fill="rgba(239,159,39,0.35)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="266" cy="300" r="7" fill="rgba(239,159,39,0.35)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="295" cy="292" r="6" fill="rgba(239,159,39,0.35)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="322" cy="299" r="7" fill="rgba(239,159,39,0.35)" stroke="#BA7517" stroke-width="0.5"/>
+                <circle class="a2-granule" cx="350" cy="291" r="6" fill="rgba(239,159,39,0.35)" stroke="#BA7517" stroke-width="0.5"/>
+
+                <!-- Animated rising bubbles (clipped inside reactor) -->
+                <circle class="a2-bubble" cx="272" cy="240" r="4" fill="none" stroke="#1D9E75" stroke-width="0.9"/>
+                <circle class="a2-bubble" cx="295" cy="248" r="5" fill="none" stroke="#1D9E75" stroke-width="0.9"/>
+                <circle class="a2-bubble" cx="320" cy="242" r="3" fill="none" stroke="#1D9E75" stroke-width="0.9"/>
+                <circle class="a2-bubble" cx="348" cy="250" r="4" fill="none" stroke="#1D9E75" stroke-width="0.9"/>
+              </g>
+
+              <!-- 3 separator triangles -->
+              <polygon points="190,220 248,160 248,220" fill="rgba(24,95,165,0.15)" stroke="#185FA5" stroke-width="1"/>
+              <polygon points="248,220 305,160 362,220" fill="rgba(24,95,165,0.15)" stroke="#185FA5" stroke-width="1"/>
+              <polygon points="362,220 362,160 420,220" fill="rgba(24,95,165,0.15)" stroke="#185FA5" stroke-width="1"/>
+              <text x="305" y="150" text-anchor="middle" fill="#5bb8f5" font-family="sans-serif" font-size="12">Three-phase separator (3 baffles)</text>
+
+              <!-- Biogas collection -->
+              <rect x="248" y="38" width="114" height="48" rx="6" fill="rgba(15,110,86,0.15)" stroke="rgba(29,158,117,0.4)" stroke-width="0.8"/>
+              <text x="305" y="62" text-anchor="middle" dominant-baseline="central" fill="#1D9E75" font-family="sans-serif" font-size="12">Biogas collection</text>
+
+              <!-- Gas arrow up (animated dash) -->
+              <line class="a2-influent" x1="305" y1="158" x2="305" y2="88" stroke="#1D9E75" stroke-width="1.4" marker-end="url(#arr-a2)" style="animation-direction:reverse"/>
+              <text x="305" y="30" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">Gas ↑  CH₄ + CO₂</text>
+
+              <!-- Effluent -->
+              <line x1="422" y1="188" x2="510" y2="188" stroke="#5bb8f5" stroke-width="1.5" marker-end="url(#arr-a2)"/>
+              <text x="516" y="184" fill="#5bb8f5" font-family="sans-serif" font-size="12">Effluent</text>
+              <text x="516" y="200" fill="#5bb8f5" font-family="sans-serif" font-size="12">(liquid →)</text>
+
+              <!-- Sludge falls back -->
+              <line x1="364" y1="222" x2="390" y2="258" stroke="#BA7517" stroke-width="1.2" marker-end="url(#arr-a2)"/>
+              <text x="396" y="238" fill="#BA7517" font-family="sans-serif" font-size="12">Sludge ↓</text>
+              <text x="396" y="254" fill="#BA7517" font-family="sans-serif" font-size="12">settles back</text>
+
+              <!-- Three-phase annotation bar -->
+              <line x1="30" y1="378" x2="650" y2="378" stroke="rgba(0,229,176,0.15)" stroke-width="0.8"/>
+              <text x="30" y="393" dominant-baseline="central" fill="#9FE1CB" font-family="sans-serif" font-size="13" font-weight="500">Three phases separated:</text>
+              <rect x="30"  y="405" width="168" height="18" rx="3" fill="rgba(15,110,86,0.2)" stroke="rgba(29,158,117,0.35)" stroke-width="0.5"/>
+              <text x="114" y="414" text-anchor="middle" dominant-baseline="central" fill="#1D9E75" font-family="sans-serif" font-size="11">Gas ↑ — biogas at top</text>
+              <rect x="210" y="405" width="168" height="18" rx="3" fill="rgba(24,95,165,0.15)" stroke="rgba(91,184,245,0.35)" stroke-width="0.5"/>
+              <text x="294" y="414" text-anchor="middle" dominant-baseline="central" fill="#5bb8f5" font-family="sans-serif" font-size="11">Liquid → — effluent exits side</text>
+              <rect x="390" y="405" width="188" height="18" rx="3" fill="rgba(186,117,23,0.15)" stroke="rgba(186,117,23,0.35)" stroke-width="0.5"/>
+              <text x="484" y="414" text-anchor="middle" dominant-baseline="central" fill="#BA7517" font-family="sans-serif" font-size="11">Solid ↓ — sludge falls back down</text>
+            </svg>
+          </div>
+          <div class="pills">
+            <div class="pill">HRT: <b>6–12 hours</b></div>
+            <div class="pill">Speed-up: <b>~40×</b></div>
+            <div class="pill">COD removal: <b>70–90%</b></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="a2-solved">
+          <ul class="blist">
+            <li><strong>Solves biomass washout</strong> — granules stay, treatment is continuous</li>
+            <li><strong>HRT: 6–12 hours</strong> vs 20–30 days — same volume, 40× faster</li>
+            <li>High biomass concentration → <strong>high reaction rate</strong></li>
+            <li>No moving parts in separator — <strong>low maintenance</strong></li>
+          </ul>
+          <div class="hl-box green" style="margin-top:14px"><strong>The insight:</strong> Separate <em>HRT</em> from <em>SRT</em> (sludge retention time) — keep microbes long, process water fast</div>
+        </div>
+
+        <div class="tab-panel" id="a2-limits">
+          <ul class="blist">
+            <li><strong>Granule formation</strong> can take months — long start-up</li>
+            <li>Sensitive to <strong>high suspended solids</strong> (can clog sludge bed)</li>
+            <li><strong>Still no N or P removal</strong></li>
+            <li>Performance drops with <strong>very high-strength or toxic waste</strong></li>
+            <li>Maximum up-flow velocity limited → <strong>throughput ceiling</strong></li>
+          </ul>
+          <div class="hl-box rust" style="margin-top:14px"><strong>Next challenge:</strong> Push velocity higher, handle more concentrated waste → EGSB</div>
+        </div>
+
+        <div class="tab-panel" id="a2-compare">
+          <table class="vs-table">
+            <tr><th>Parameter</th><th class="amber">Biogas Pit / CSTR</th><th class="green">UASB</th></tr>
+            <tr><td class="feature">HRT</td><td>20–30 days</td><td><strong>6–12 hours ✅</strong></td></tr>
+            <tr><td class="feature">Biomass retention</td><td>❌ Poor</td><td><strong>✅ Granular sludge</strong></td></tr>
+            <tr><td class="feature">COD removal</td><td>50–70%</td><td><strong>70–90% ✅</strong></td></tr>
+            <tr><td class="feature">Up-flow velocity</td><td>~0.5 m/h</td><td>1–3 m/h</td></tr>
+            <tr><td class="feature">N &amp; P removal</td><td>❌ None</td><td>❌ None</td></tr>
+            <tr><td class="feature">Start-up time</td><td>Weeks</td><td>Months (granule formation)</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           A3: EGSB
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-a3">
+        <div class="slide-tag">Route A · Stop 3</div>
+        <div class="slide-title">The <strong>EGSB</strong> — Expanding the Blanket</div>
+        <div class="slide-lead">Expanded Granular Sludge Bed — <strong>higher velocity, taller reactor, expanded sludge bed</strong></div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab(this,'a3-mech')">⚙ Mechanism</button>
+          <button class="tab" onclick="switchTab(this,'a3-solved')">✅ Solved</button>
+          <button class="tab" onclick="switchTab(this,'a3-limits')">⚠ Limitations</button>
+          <button class="tab" onclick="switchTab(this,'a3-compare')">📊 Compare</button>
+        </div>
+
+        <div class="tab-panel active" id="a3-mech">
+          <div class="kw" style="margin-bottom:16px">Same principle, <em>higher velocity</em></div>
+          <!-- EGSB vs UASB dark SVG -->
+          <div class="svg-wrap">
+            <svg width="100%" viewBox="0 0 680 430" style="background:#0c1a25">
+              <defs>
+                <marker id="arr-a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+
+              <!-- ═══ UASB (矮胖化：width 165→210, height 290→200) ═══ -->
+<text x="155" y="107" text-anchor="middle" fill="#9FE1CB" font-family="sans-serif" font-size="14" font-weight="500">UASB</text>
+<rect x="50" y="120" width="210" height="200" rx="6" fill="none" stroke="rgba(0,229,176,0.2)" stroke-width="0.8" stroke-dasharray="5 3"/>
+
+<!-- UASB sludge bed (下半部分) -->
+<rect x="50" y="240" width="210" height="80" fill="rgba(186,117,23,0.15)" stroke="rgba(186,117,23,0.3)" stroke-width="0.8"/>
+<text x="155" y="277" text-anchor="middle" fill="#BA7517" font-family="sans-serif" font-size="12">Packed bed</text>
+<text x="155" y="293" text-anchor="middle" fill="#BA7517" font-family="sans-serif" font-size="12">1–3 m/h</text>
+
+<!-- Packed granules -->
+<circle cx="75"  cy="248" r="7" fill="rgba(239,159,39,0.55)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="108" cy="243" r="7" fill="rgba(239,159,39,0.55)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="138" cy="249" r="7" fill="rgba(239,159,39,0.55)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="168" cy="244" r="7" fill="rgba(239,159,39,0.55)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="198" cy="248" r="7" fill="rgba(239,159,39,0.55)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="228" cy="243" r="7" fill="rgba(239,159,39,0.55)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="92"  cy="262" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="123" cy="259" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="153" cy="263" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="183" cy="259" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="213" cy="263" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+<circle cx="244" cy="258" r="6" fill="rgba(239,159,39,0.45)" stroke="#BA7517" stroke-width="0.5"/>
+
+<!-- UASB: 1 separator triangle -->
+<polygon points="50,233 155,193 260,233" fill="rgba(24,95,165,0.15)" stroke="#185FA5" stroke-width="1"/>
+<text x="155" y="183" text-anchor="middle" fill="#5bb8f5" font-family="sans-serif" font-size="11">1 separator</text>
+<text x="155" y="197" text-anchor="middle" fill="#5bb8f5" font-family="sans-serif" font-size="11">(single level)</text>
+
+<!-- Effluent arrow -->
+<line x1="262" y1="205" x2="282" y2="205" stroke="#5bb8f5" stroke-width="1.2" marker-end="url(#arr-a3)"/>
+<text x="284" y="201" fill="#5bb8f5" font-family="sans-serif" font-size="11">Eff.</text>
+
+<!-- Biogas arrow -->
+<line x1="155" y1="190" x2="155" y2="127" stroke="#1D9E75" stroke-width="1.2" marker-end="url(#arr-a3)"/>
+<text x="155" y="120" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">Biogas ↑</text>
+
+<!-- Influent arrow -->
+<line x1="21" y1="305" x2="48" y2="305" stroke="#00e5b0" stroke-width="1.2" marker-end="url(#arr-a3)"/>
+<text x="20" y="309" text-anchor="end" fill="#00e5b0" font-family="sans-serif" font-size="11">Inf.</text>
+
+              
+              <!-- ═══ VS ═══ -->
+              <text x="315" y="145" text-anchor="middle" fill="#2e4a5e" font-family="sans-serif" font-size="20" font-weight="500">vs</text>
+
+              <!-- ═══ EGSB (瘦高化：原x=408 → x=340, width 200→155, height 310→370) ═══ -->
+              <text x="420" y="22" text-anchor="middle" fill="#9FE1CB" font-family="sans-serif" font-size="14" font-weight="500">EGSB</text>
+              <rect x="343" y="35" width="155" height="370" rx="6" fill="none" stroke="rgba(0,229,176,0.2)" stroke-width="0.8" stroke-dasharray="5 3"/>
+
+              <!-- EGSB expanded bed -->
+              <rect x="343" y="185" width="155" height="220" fill="rgba(15,110,86,0.1)" stroke="rgba(29,158,117,0.3)" stroke-width="0.8"/>
+              <text x="420" y="268" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">Expanded bed</text>
+              <text x="420" y="286" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">4–10 m/h</text>
+
+              <!-- Floating granules（animated float for EGSB） -->
+              <circle class="a3-egsb-granule" cx="363" cy="200" r="6" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="390" cy="212" r="7" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="418" cy="198" r="6" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="446" cy="210" r="7" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="474" cy="200" r="6" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="363" cy="330" r="6" fill="rgba(93,202,165,0.35)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="395" cy="342" r="5" fill="rgba(93,202,165,0.35)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="425" cy="333" r="6" fill="rgba(93,202,165,0.35)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="455" cy="341" r="5" fill="rgba(93,202,165,0.35)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a3-egsb-granule" cx="485" cy="332" r="6" fill="rgba(93,202,165,0.35)" stroke="#1D9E75" stroke-width="0.5"/>
+
+              <!-- EGSB: lower separator (1st level) -->
+              <polygon points="343,185 420,150 498,185" fill="rgba(24,95,165,0.15)" stroke="#185FA5" stroke-width="1"/>
+              <text x="502" y="190" fill="#5bb8f5" font-family="sans-serif" font-size="11">1st</text>
+
+              <!-- EGSB: upper separator (2nd level) -->
+              <polygon points="343,115 420,78 498,115" fill="rgba(24,95,165,0.1)" stroke="#185FA5" stroke-width="1" stroke-dasharray="5 3"/>
+              <text x="502" y="120" fill="#5bb8f5" font-family="sans-serif" font-size="11">2nd</text>
+
+              <!-- Bracket linking both -->
+              <line x1="510" y1="118" x2="516" y2="118" stroke="#185FA5" stroke-width="0.8"/>
+              <line x1="510" y1="188" x2="516" y2="188" stroke="#185FA5" stroke-width="0.8"/>
+              <line x1="516" y1="118" x2="516" y2="188" stroke="#185FA5" stroke-width="0.8"/>
+              <text x="420" y="66" text-anchor="middle" fill="#5bb8f5" font-family="sans-serif" font-size="11">2 separators</text>
+              <text x="420" y="80" text-anchor="middle" fill="#5bb8f5" font-family="sans-serif" font-size="11">(stacked levels)</text>
+
+              <!-- Effluent between 1st and 2nd -->
+              <line x1="520" y1="152" x2="548" y2="152" stroke="#5bb8f5" stroke-width="1.2" marker-end="url(#arr-a3)"/>
+              <text x="550" y="148" fill="#5bb8f5" font-family="sans-serif" font-size="11">Eff.</text>
+              <text x="550" y="162" fill="#5bb8f5" font-family="sans-serif" font-size="11">(between</text>
+              <text x="550" y="176" fill="#5bb8f5" font-family="sans-serif" font-size="11">levels)</text>
+
+              <!-- Biogas -->
+              <line x1="420" y1="75" x2="420" y2="42" stroke="#1D9E75" stroke-width="1.2" marker-end="url(#arr-a3)"/>
+              <text x="420" y="35" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">Biogas ↑</text>
+
+              <!-- Influent arrow -->
+              <line x1="308" y1="390" x2="341" y2="390" stroke="#00e5b0" stroke-width="1.2" marker-end="url(#arr-a3)"/>
+              <text x="304" y="394" text-anchor="end" fill="#00e5b0" font-family="sans-serif" font-size="11">Inf.</text>
+
+              <!-- Recycle pipe（animated dash flow）-->
+              <path class="a3-recycle" d="M500 52 Q540 52 540 220 Q540 395 500 395" fill="none" stroke="#0F6E56" stroke-width="1" marker-end="url(#arr-a3)"/>
+              <text x="543" y="200" fill="#0F6E56" font-family="sans-serif" font-size="11">Recycle</text>
+              <text x="543" y="215" fill="#0F6E56" font-family="sans-serif" font-size="11">↓ to inlet</text>
+
+              <!-- Bottom comparison bar -->
+              <rect x="30" y="412" width="618" height="14" rx="4" fill="rgba(24,95,165,0.08)" stroke="rgba(91,184,245,0.2)" stroke-width="0.8"/>
+              <text x="338" y="423" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="10">UASB: 1 separator · packed bed · 1–3 m/h    |    EGSB: 2 separators · expanded bed · 4–10 m/h · recycle</text>
+            </svg>
+          </div>          
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0">
+            <div class="img-ph" style="margin:0">
+              <div style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-bottom:8px">UASB — real installation</div>
+              <img src="images/A3_UASB.png" alt="UASB real photo" style="width:100%;border-radius:8px">
+            </div>
+            <div class="img-ph" style="margin:0">
+              <div style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;margin-bottom:8px">EGSB — real installation</div>
+              <img src="images/A3_EGSB.png" alt="EGSB real photo" style="width:100%;border-radius:8px">
+            </div>
+          </div>
+          <div class="hl-box green">
+            <strong>Expanded bed = better mixing</strong> — granules are in constant gentle motion → better contact between wastewater and microbes → faster degradation
+          </div>
+          <div class="pills">
+            <div class="pill">HRT: <b>2–6 hours</b></div>
+            <div class="pill">Up-flow: <b>4–10 m/h</b></div>
+            <div class="pill">COD removal: <b>80–95%</b></div>
+            <div class="pill">Handles: <b>Very high-strength</b></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="a3-solved">
+          <ul class="blist">
+            <li>Handles <strong>very high COD waste</strong> (up to 50,000 mg/L) — UASB struggles above ~15,000</li>
+            <li>Better mass transfer → <strong>higher volumetric loading rate</strong></li>
+            <li><strong>Less clogging</strong> — expanded bed self-cleans</li>
+            <li>Smaller footprint than UASB for same throughput</li>
+          </ul>
+        </div>
+
+        <div class="tab-panel" id="a3-limits">
+          <ul class="blist">
+            <li>Requires <strong>effluent recycle pump</strong> — energy cost</li>
+            <li>More complex operation — <strong>velocity must be carefully controlled</strong></li>
+            <li>Granule loss possible if velocity too high</li>
+            <li><strong>Still no N or P removal</strong></li>
+            <li>Membrane fouling not addressed — biomass can escape</li>
+          </ul>
+          <div class="hl-box rust" style="margin-top:14px"><strong>Next challenge:</strong> Retain even the finest biomass → couple with membrane → AnMBR</div>
+        </div>
+
+        <div class="tab-panel" id="a3-compare">
+          <table class="vs-table">
+            <tr><th>Parameter</th><th class="amber">Biogas Pit</th><th class="green">UASB</th><th style="color:var(--green)">EGSB</th></tr>
+            <tr><td class="feature">HRT</td><td>20–30 days</td><td>6–12 h</td><td><strong>2–6 h ✅</strong></td></tr>
+            <tr><td class="feature">Up-flow velocity</td><td>~0.5 m/h</td><td>1–3 m/h</td><td><strong>4–10 m/h ✅</strong></td></tr>
+            <tr><td class="feature">Max COD load</td><td>Low</td><td>~15,000 mg/L</td><td><strong>~50,000 mg/L ✅</strong></td></tr>
+            <tr><td class="feature">Sludge bed state</td><td>Settled</td><td>Packed blanket</td><td><strong>Expanded (fluidised)</strong></td></tr>
+            <tr><td class="feature">COD removal</td><td>50–70%</td><td>70–90%</td><td><strong>80–95% ✅</strong></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           A4: EGSB + AnMBR
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-a4">
+        <div class="slide-tag">Route A · Stop 4</div>
+        <div class="slide-title">EGSB + <strong>AnMBR</strong></div>
+        <div class="slide-lead">Anaerobic Membrane Bioreactor — <strong>retain everything, lose nothing</strong></div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab(this,'a4-mech')">⚙ Mechanism</button>
+          <button class="tab" onclick="switchTab(this,'a4-solved')">✅ Solved</button>
+          <button class="tab" onclick="switchTab(this,'a4-limits')">⚠ Limitations</button>
+          <button class="tab" onclick="switchTab(this,'a4-compare')">📊 Compare</button>
+        </div>
+
+        <div class="tab-panel active" id="a4-mech">
+          <div class="kw" style="margin-bottom:16px">EGSB + <em>Membrane Filtration</em></div>
+          <!-- AnMBR dark SVG -->
+          <div class="svg-wrap">
+            <svg width="100%" viewBox="0 0 680 360" style="background:#0c1a25">
+              <defs>
+                <marker id="arr-a4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+              <!-- EGSB reactor -->
+              <rect x="30" y="40" width="180" height="280" rx="6" fill="none" stroke="rgba(0,229,176,0.2)" stroke-width="0.8" stroke-dasharray="5 3"/>
+              <text x="120" y="26" text-anchor="middle" fill="#9FE1CB" font-family="sans-serif" font-size="14" font-weight="500">EGSB reactor</text>
+              <rect x="30" y="78" width="180" height="242" fill="rgba(15,110,86,0.08)"/>
+              <!-- Biomass particles (animated drift) -->
+              <circle class="a4-biomass" cx="60"  cy="105" r="7" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="92"  cy="92"  r="6" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="124" cy="108" r="8" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="158" cy="96"  r="6" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="190" cy="106" r="7" fill="rgba(93,202,165,0.45)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="68"  cy="148" r="6" fill="rgba(93,202,165,0.38)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="106" cy="158" r="7" fill="rgba(93,202,165,0.38)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="144" cy="146" r="6" fill="rgba(93,202,165,0.38)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="180" cy="155" r="7" fill="rgba(93,202,165,0.38)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="78"  cy="215" r="7" fill="rgba(93,202,165,0.3)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="116" cy="225" r="6" fill="rgba(93,202,165,0.3)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="152" cy="218" r="7" fill="rgba(93,202,165,0.3)" stroke="#1D9E75" stroke-width="0.5"/>
+              <circle class="a4-biomass" cx="188" cy="226" r="6" fill="rgba(93,202,165,0.3)" stroke="#1D9E75" stroke-width="0.5"/>
+              <text x="120" y="58" text-anchor="middle" fill="#1D9E75" font-family="sans-serif" font-size="12">↑ Biogas (CH₄ + CO₂)</text>
+              <!-- Mixed liquor arrow -->
+              <line x1="212" y1="180" x2="268" y2="180" stroke="#00e5b0" stroke-width="1.5" marker-end="url(#arr-a4)"/>
+              <text x="240" y="137" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="11">Mixed</text>
+              <text x="240" y="172" text-anchor="middle" fill="#6e95b0" font-family="sans-serif" font-size="11">liquor</text>
+              <!-- Membrane module -->
+              <rect x="270" y="68" width="74" height="252" rx="4" fill="none" stroke="rgba(24,95,165,0.4)" stroke-width="0.8" stroke-dasharray="4 3"/>
+              <text x="307" y="54" text-anchor="middle" fill="#5bb8f5" font-family="sans-serif" font-size="13" font-weight="500">Membrane</text>
+              <!-- Membrane fibers (animated glow) -->
+              <line class="a4-membrane-fiber" x1="283" y1="70" x2="283" y2="318" stroke="#185FA5" stroke-width="0.8"/>
+              <line class="a4-membrane-fiber" x1="293" y1="70" x2="293" y2="318" stroke="#185FA5" stroke-width="0.8"/>
+              <line class="a4-membrane-fiber" x1="303" y1="70" x2="303" y2="318" stroke="#185FA5" stroke-width="0.8"/>
+              <line class="a4-membrane-fiber" x1="313" y1="70" x2="313" y2="318" stroke="#185FA5" stroke-width="0.8"/>
+              <line class="a4-membrane-fiber" x1="323" y1="70" x2="323" y2="318" stroke="#185FA5" stroke-width="0.8"/>
+              <line class="a4-membrane-fiber" x1="333" y1="70" x2="333" y2="318" stroke="#185FA5" stroke-width="0.8"/>
+              <text x="307" y="335" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="11">0.01–0.1 μm pores</text>
+              <!-- Blocked particles (pulse) -->
+              <circle class="a4-reject" cx="256" cy="118" r="9" fill="rgba(224,75,74,0.3)" stroke="#A32D2D" stroke-width="0.8"/>
+              <circle class="a4-reject" cx="254" cy="152" r="8" fill="rgba(224,75,74,0.3)" stroke="#A32D2D" stroke-width="0.8"/>
+              <circle class="a4-reject" cx="258" cy="192" r="9" fill="rgba(224,75,74,0.3)" stroke="#A32D2D" stroke-width="0.8"/>
+              <circle class="a4-reject" cx="253" cy="232" r="8" fill="rgba(224,75,74,0.3)" stroke="#A32D2D" stroke-width="0.8"/>
+              <circle class="a4-reject" cx="257" cy="270" r="9" fill="rgba(224,75,74,0.3)" stroke="#A32D2D" stroke-width="0.8"/>
+              <line x1="248" y1="112" x2="264" y2="126" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="264" y1="112" x2="248" y2="126" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="246" y1="146" x2="262" y2="160" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="262" y1="146" x2="246" y2="160" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="250" y1="186" x2="266" y2="200" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="266" y1="186" x2="250" y2="200" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="245" y1="226" x2="261" y2="240" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="261" y1="226" x2="245" y2="240" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="249" y1="264" x2="265" y2="278" stroke="#A32D2D" stroke-width="1.2"/>
+              <line x1="265" y1="264" x2="249" y2="278" stroke="#A32D2D" stroke-width="1.2"/>
+              <!-- Water molecules pass through (animated drift right) -->
+              <circle class="a4-water-dot" cx="355" cy="105" r="3" fill="rgba(55,138,221,0.7)"/>
+              <circle class="a4-water-dot" cx="355" cy="145" r="3" fill="rgba(55,138,221,0.7)"/>
+              <circle class="a4-water-dot" cx="355" cy="185" r="3" fill="rgba(55,138,221,0.7)"/>
+              <circle class="a4-water-dot" cx="355" cy="225" r="3" fill="rgba(55,138,221,0.7)"/>
+              <circle class="a4-water-dot" cx="355" cy="265" r="3" fill="rgba(55,138,221,0.7)"/>
+              <!-- Effluent arrow -->
+              <line x1="416" y1="192" x2="468" y2="192" stroke="#5bb8f5" stroke-width="1.5" marker-end="url(#arr-a4)"/>
+              <!-- Right labels — upper half -->
+              <rect x="472" y="68" width="190" height="58" rx="6" fill="rgba(147,45,45,0.12)" stroke="rgba(163,45,45,0.3)" stroke-width="0.8"/>
+              <text x="567" y="78" text-anchor="middle" dominant-baseline="central" fill="#F09595" font-family="sans-serif" font-size="13" font-weight="500">Retained</text>
+              <text x="567" y="96" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">All biomass &amp; SS</text>
+              <text x="567" y="110" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">→ stays in reactor</text>
+              <rect x="472" y="140" width="190" height="58" rx="6" fill="rgba(15,110,86,0.12)" stroke="rgba(29,158,117,0.3)" stroke-width="0.8"/>
+              <text x="567" y="150" text-anchor="middle" dominant-baseline="central" fill="#9FE1CB" font-family="sans-serif" font-size="13" font-weight="500">Permeate out</text>
+              <text x="567" y="168" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">Clean water only</text>
+              <text x="567" y="182" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">Effluent SS ≈ 0 mg/L</text>
+              <rect x="472" y="214" width="190" height="44" rx="6" fill="rgba(0,229,176,0.05)" stroke="rgba(0,229,176,0.2)" stroke-width="0.8" stroke-dasharray="4 3"/>
+              <text x="567" y="230" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">SRT fully decoupled</text>
+              <text x="567" y="248" text-anchor="middle" dominant-baseline="central" fill="#6e95b0" font-family="sans-serif" font-size="12">from HRT</text>
+            </svg>
+          </div>
+          <div class="hl-box green">
+            <strong>Result:</strong> Run at very high biomass concentrations (20–40 g VSS/L vs 8–12 in EGSB) → <strong>fastest degradation rate yet</strong>
+          </div>
+          <div class="pills">
+            <div class="pill">HRT: <b>&lt; 2 hours</b></div>
+            <div class="pill">Biomass: <b>20–40 g/L</b></div>
+            <div class="pill">COD removal: <b>&gt;95%</b></div>
+            <div class="pill">Effluent SS: <b>~0</b></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="a4-solved">
+          <ul class="blist">
+            <li><strong>Ultimate biomass retention</strong> — no cell loss </li>
+            <li>Extremely high loading rates — <strong>smallest reactor footprint</strong> of all anaerobic systems</li>
+            <li>Excellent effluent quality for <strong>reuse or downstream treatment</strong></li>
+            <li>Can handle <strong>toxic or inhibitory compounds</strong> — slow-growing specialised microbes are retained</li>
+          </ul>
+        </div>
+
+        <div class="tab-panel" id="a4-limits">
+          <ul class="blist">
+            <li><strong>Membrane fouling</strong> — requires periodic cleaning (energy + chemicals)</li>
+            <li>Biogas can get trapped in membrane → needs <strong>degassing system</strong></li>
+            <li><strong>Still no N or P removal</strong> — must be followed by Route B treatment</li>
+          </ul>
+          <div class="hl-box amber" style="margin-top:14px"><strong>Route A conclusion:</strong> COD → handled. Energy → recovered. Now we need Route B for nitrogen and phosphorus.</div>
+        </div>
+
+        <div class="tab-panel" id="a4-compare">
+          <table class="vs-table">
+            <tr><th>Parameter</th><th class="amber">CSTR</th><th class="green">UASB</th><th style="color:var(--green)">EGSB</th><th style="color:var(--blue)">EGSB+AnMBR</th></tr>
+            <tr><td class="feature">HRT</td><td>20–30 d</td><td>6–12 h</td><td>2–6 h</td><td><strong>&lt;2 h ✅</strong></td></tr>
+            <tr><td class="feature">Biomass (g/L)</td><td>~3–5</td><td>~15–20</td><td>~15–25</td><td><strong>20–40 ✅</strong></td></tr>
+            <tr><td class="feature">COD removal</td><td>50–70%</td><td>70–90%</td><td>80–95%</td><td><strong>&gt;95% ✅</strong></td></tr>
+            <tr><td class="feature">Effluent SS</td><td>High</td><td>Low</td><td>Low</td><td><strong>~0 ✅</strong></td></tr>
+            <tr><td class="feature">Complexity</td><td>Low</td><td>Medium</td><td>Medium-High</td><td>High</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           B1: A2O
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-b1">
+        <div class="slide-tag">Route B · Stop 1</div>
+        <div class="slide-title">The <strong>A²/O</strong> Process</div>
+        <div class="slide-lead">Anaerobic–Anoxic–Oxic: <strong>three zones, three jobs</strong> — simultaneous C, N, P removal</div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab(this,'b1-mech')">⚙ Mechanism</button>
+          <button class="tab" onclick="switchTab(this,'b1-solved')">✅ Solved</button>
+          <button class="tab" onclick="switchTab(this,'b1-limits')">⚠ Limitations</button>
+          <button class="tab" onclick="switchTab(this,'b1-compare')">📊 Compare</button>
+        </div>
+
+        <div class="tab-panel active" id="b1-mech">
+
+        <!-- B1 A2O DRAG ORDER QUIZ -->
+<div id="a2o-quiz" style="margin-bottom:24px">
+  <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--blue);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px">
+    Quick check — drag to arrange the A²/O zones in the correct order
+  </div>
+
+  <!-- Drag zone -->
+  <div id="a2o-drag-container"
+    style="display:flex;gap:12px;margin-bottom:16px;min-height:110px;align-items:stretch">
+  </div>
+
+  <!-- Slot labels -->
+  <div style="display:flex;gap:12px;margin-bottom:18px">
+    <div style="flex:1;text-align:center;font-family:'Space Mono',monospace;font-size:10px;color:var(--text3)">1st</div>
+    <div style="flex:1;text-align:center;font-family:'Space Mono',monospace;font-size:10px;color:var(--text3)">2nd</div>
+    <div style="flex:1;text-align:center;font-family:'Space Mono',monospace;font-size:10px;color:var(--text3)">3rd</div>
+  </div>
+
+  <!-- Check button -->
+  <div style="text-align:center;margin-bottom:12px">
+    <button onclick="a2oCheck()"
+      style="padding:10px 32px;border-radius:40px;border:1.5px solid var(--blue);background:var(--blue-dim);color:var(--blue);font-family:'Space Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.08em;transition:all .2s">
+      CHECK ORDER
+    </button>
+  </div>
+
+  <!-- Result -->
+  <div id="a2o-result" style="text-align:center;font-size:14px;font-weight:700;min-height:22px;font-family:'Space Mono',monospace;letter-spacing:.04em"></div>
+
+  <!-- Reset -->
+  <div style="text-align:center;margin-top:10px">
+    <button id="a2o-reset" onclick="a2oReset()"
+      style="display:none;padding:7px 20px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Space Mono',monospace;font-size:11px;cursor:pointer">
+      ↺ Try again
+    </button>
+  </div>
+</div>
+
+<script>
+// ── A2O DRAG ORDER QUIZ ──
+const A2O_ZONES = [
+  {
+    id: 'anaerobic',
+    label: 'Anaerobic',
+    cn: '厌氧',
+    hint: 'PAOs release P · store PHA',
+    color: 'var(--amber)',
+    border: 'rgba(255,184,48,0.4)',
+    bg: 'rgba(255,184,48,0.08)',
+    correct: 0
+  },
+  {
+    id: 'anoxic',
+    label: 'Anoxic',
+    cn: '缺氧',
+    hint: 'NO₃⁻ → N₂ · denitrification',
+    color: 'var(--blue)',
+    border: 'rgba(91,184,245,0.4)',
+    bg: 'rgba(91,184,245,0.08)',
+    correct: 1
+  },
+  {
+    id: 'oxic',
+    label: 'Oxic',
+    cn: '好氧',
+    hint: 'NH₄⁺ → NO₃⁻ · PAOs absorb P',
+    color: 'var(--green)',
+    border: 'rgba(0,229,176,0.4)',
+    bg: 'rgba(0,229,176,0.08)',
+    correct: 2
+  }
+];
+
+let a2oDone = false;
+let a2oDragSrc = null;
+
+function a2oBuildCards() {
+  const container = document.getElementById('a2o-drag-container');
+  container.innerHTML = '';
+
+  // Shuffle
+  const shuffled = [...A2O_ZONES].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach(zone => {
+    const card = document.createElement('div');
+    card.id = 'a2o-card-' + zone.id;
+    card.draggable = true;
+    card.dataset.id = zone.id;
+    card.style.cssText = `
+      flex:1;padding:16px 12px;border-radius:12px;
+      border:1.5px solid ${zone.border};
+      background:${zone.bg};
+      cursor:grab;user-select:none;
+      transition:all .2s;text-align:center;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:6px;
+    `;
+    card.innerHTML = `
+      <div style="font-size:16px;font-weight:800;color:${zone.color};font-family:'Space Mono',monospace">${zone.label}</div>
+      <div style="font-size:12px;color:${zone.color};opacity:.7;font-family:'Noto Sans SC',sans-serif">${zone.cn}</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5">${zone.hint}</div>
+    `;
+
+    card.addEventListener('dragstart', e => {
+      if (a2oDone) return;
+      a2oDragSrc = card;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => card.style.opacity = '0.4', 0);
+    });
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '1';
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!a2oDragSrc || a2oDragSrc === card) return;
+      // Swap positions in DOM
+      const container = document.getElementById('a2o-drag-container');
+      const cards = [...container.children];
+      const srcIdx = cards.indexOf(a2oDragSrc);
+      const tgtIdx = cards.indexOf(card);
+      if (srcIdx < tgtIdx) {
+        container.insertBefore(a2oDragSrc, card.nextSibling);
+      } else {
+        container.insertBefore(a2oDragSrc, card);
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function a2oCheck() {
+  if (a2oDone) return;
+  const container = document.getElementById('a2o-drag-container');
+  const cards = [...container.children];
+  const order = cards.map(c => c.dataset.id);
+  const correct = ['anaerobic', 'anoxic', 'oxic'];
+  const isCorrect = order.every((id, i) => id === correct[i]);
+  const resultEl = document.getElementById('a2o-result');
+
+  if (isCorrect) {
+    a2oDone = true;
+    resultEl.textContent = '✓ Correct! Anaerobic → Anoxic → Oxic';
+    resultEl.style.color = 'var(--green)';
+
+    // Green border on all cards
+    cards.forEach(c => {
+      c.style.borderColor = 'var(--green)';
+      c.style.background = 'var(--green-dim)';
+    });
+
+    // Sound — rising tone
+    a2oPlaySound(true);
+
+    // Confetti (if library available)
+    if (typeof confetti !== 'undefined') {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.4 },
+        colors: ['#00e5b0','#ffb830','#5bb8f5','#ffffff']
+      });
+    }
+
+    document.getElementById('a2o-reset').style.display = 'inline-block';
+
+  } else {
+    resultEl.textContent = '✗ Not quite — try rearranging';
+    resultEl.style.color = 'var(--rust)';
+
+    // Shake all cards
+    cards.forEach(c => {
+      c.style.animation = 'shake .4s ease';
+      setTimeout(() => c.style.animation = '', 400);
+    });
+
+    // Sound — low error tone
+    a2oPlaySound(false);
+
+    document.getElementById('a2o-reset').style.display = 'inline-block';
+  }
+}
+
+function a2oPlaySound(success) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (success) {
+      // Rising arpeggio: three notes
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.4);
+        osc.start(ctx.currentTime + i * 0.12);
+        osc.stop(ctx.currentTime + i * 0.12 + 0.4);
+      });
+    } else {
+      // Low dull thud
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = 180;
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.35);
+    }
+  } catch(e) {}
+}
+
+function a2oReset() {
+  a2oDone = false;
+  document.getElementById('a2o-result').textContent = '';
+  document.getElementById('a2o-reset').style.display = 'none';
+  a2oBuildCards();
+}
+
+// Init
+a2oBuildCards();
+</script>
+
+<!-- canvas-confetti CDN (graceful fallback if offline) -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+ 
+        <!-- A2O SVG — dual recycle -->
+          <div class="svg-wrap">
+            <svg width="100%" viewBox="0 0 680 230" style="background:#0c1a25">
+              <defs>
+                <marker id="arw-b1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+
+              <!-- Zone boxes（加高至height=160）-->
+              <rect x="30"  y="70" width="140" height="80" rx="7" fill="rgba(255,184,48,0.08)"  stroke="rgba(255,184,48,0.5)"  stroke-width="1.2"/>
+              <rect x="190" y="70" width="140" height="80" rx="7" fill="rgba(91,184,245,0.08)"  stroke="rgba(91,184,245,0.5)"  stroke-width="1.2"/>
+              <rect x="350" y="70" width="140" height="80" rx="7" fill="rgba(0,229,176,0.08)"   stroke="rgba(0,229,176,0.5)"   stroke-width="1.2"/>
+
+              <!-- ── Anaerobic zone ── -->
+              <text x="100" y="90" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#ffb830" dominant-baseline="central">Anaerobic</text>
+              <text x="100" y="112" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#BA7517" dominant-baseline="central">PAOs release P</text>
+              <text x="100" y="126" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#BA7517" dominant-baseline="central">Store organics (PHA)</text>
+              
+              <!-- ── Anoxic zone ── -->
+              <text x="260" y="90" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#5bb8f5" dominant-baseline="central">Anoxic</text>
+              <text x="260" y="112" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#3B8BD4" dominant-baseline="central">NO₃⁻ → N₂</text>
+              <text x="260" y="126" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#3B8BD4" dominant-baseline="central">Denitrification</text>
+           
+              <!-- ── Oxic zone ── -->
+              <text x="420" y="90" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#00e5b0" dominant-baseline="central">Oxic</text>
+              <text x="420" y="112" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#1D9E75" dominant-baseline="central">NH₄⁺→NO₃⁻ (Nitrif.)</text>
+              <text x="420" y="126" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#1D9E75" dominant-baseline="central">PAOs absorb P</text>
+    
+              <!-- Secondary clarifier label -->
+              <text x="548" y="100" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6e95b0" dominant-baseline="central">Secondary</text>
+              <text x="548" y="115" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6e95b0" dominant-baseline="central">clarifier</text>
+              <line x1="492" y1="110" x2="518" y2="110" stroke="#6e95b0" stroke-width="1.2" marker-end="url(#arw-b1)"/>
+              <text x="570" y="172" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#ffb830" dominant-baseline="central">Sludge return</text>
+
+              <!-- Forward flow arrows -->
+              <line x1="172" y1="110" x2="188" y2="110" stroke="#6e95b0" stroke-width="1.5" marker-end="url(#arw-b1)"/>
+              <line x1="332" y1="110" x2="348" y2="110" stroke="#6e95b0" stroke-width="1.5" marker-end="url(#arw-b1)"/>
+
+              <!-- Influent in -->
+              <line x1="4" y1="110" x2="28" y2="110" stroke="#00e5b0" stroke-width="1.5" marker-end="url(#arw-b1)"/>
+              <text x="2" y="98" font-family="sans-serif" font-size="10" fill="#00e5b0">In</text>
+
+              <!-- Effluent out -->
+              <line x1="578" y1="110" x2="610" y2="110" stroke="#00e5b0" stroke-width="1.5" marker-end="url(#arw-b1)"/>
+              <text x="614" y="115" font-family="sans-serif" font-size="10" fill="#00e5b0">Eff.</text>
+
+              <!-- INTERNAL RECYCLE (Oxic → Anoxic) — above boxes -->
+              <path d="M 480 70 L 480 44 L 200 44 L 200 70" fill="none" stroke="#5bb8f5" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#arw-b1)"/>
+              <text x="340" y="36" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#5bb8f5">Internal recycle — NO₃⁻ returned to Anoxic zone (denitrification)</text>
+
+              <!-- EXTERNAL RECYCLE (Secondary clarifier → Anaerobic) — below boxes -->
+              <path d="M 530 150 L 530 186 L 50 186 L 50 150"fill="none" stroke="#ffb830" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#arw-b1)"/>
+              <text x="290" y="288" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#ffb830">External recycle — PAOs returned to Anaerobic zone (phosphorus release)</text>
+
+              <!-- Legend pills -->
+              <rect x="30"  y="300" width="140" height="14" rx="4" fill="rgba(91,184,245,0.1)" stroke="rgba(91,184,245,0.3)" stroke-width="0.5"/>
+              <text x="100" y="307" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#5bb8f5" dominant-baseline="central">- - - Internal recycle (NO₃⁻)</text>
+              <rect x="184" y="300" width="160" height="14" rx="4" fill="rgba(255,184,48,0.1)" stroke="rgba(255,184,48,0.3)" stroke-width="0.5"/>
+              <text x="264" y="307" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#ffb830" dominant-baseline="central">- - - External recycle (PAOs)</text>
+            </svg>
+          </div>          
+          <div class="grid-3" style="margin-top:14px">
+            <div class="card">
+              <div class="card-label amber">Anaerobic zone</div>
+              <ul class="blist" style="font-size:17px">
+                <li>PAOs release P</li>
+                <li>Store VFAs as <strong>PHA</strong></li>
+              </ul>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,184,48,0.15)">
+                <div style="font-family:'Space Mono',monospace;font-size:9px;color:#BA7517;letter-spacing:.1em;margin-bottom:6px">EQUATIONS</div>
+                <div style="font-family:'Space Mono',monospace;font-size:14px;color:#FAC775;line-height:2.0">
+                  CH₃COO⁻ + PAO → PHA<br>
+                  Poly-P → Pi (released)<br>
+                  C₆H₁₂O₆ → 2C₂H₅OH + 2CO₂
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-label blue">Anoxic zone</div>
+              <ul class="blist" style="font-size:17px">
+                <li>Denitrifiers use PHA</li>
+                <li>NO₃⁻ → <strong>N₂</strong> gas</li>
+              </ul>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(91,184,245,0.15)">
+                <div style="font-family:'Space Mono',monospace;font-size:9px;color:#3B8BD4;letter-spacing:.1em;margin-bottom:6px">EQUATIONS</div>
+                <div style="font-family:'Space Mono',monospace;font-size:14px;color:#8dd4f8;line-height:2.0">
+                  6NO₃⁻ + 5CH₃OH →<br>
+                  3N₂ + 5CO₂ + 7H₂O + 6OH⁻<br>
+                  <span style="color:#3B8BD4;font-size:10px">(PHA as electron donor)</span>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-label">Oxic zone</div>
+              <ul class="blist" style="font-size:17px">
+                <li>Nitrification: NH₄⁺→NO₃⁻</li>
+                <li>PAOs <strong>over-absorb P</strong></li>
+              </ul>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,229,176,0.15)">
+                <div style="font-family:'Space Mono',monospace;font-size:9px;color:#1D9E75;letter-spacing:.1em;margin-bottom:6px">EQUATIONS</div>
+                <div style="font-family:'Space Mono',monospace;font-size:14px;color:#9FE1CB;line-height:2.0">
+                  NH₄⁺ + 2O₂ → NO₃⁻ + 2H⁺ + H₂O<br>
+                  PO₄³⁻ + PAO → Poly-P<br>
+                  <span style="color:#1D9E75;font-size:10px">(over-absorption)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="b1-solved">
+          <ul class="blist">
+            <li>First system to achieve <strong>simultaneous C, N, P removal</strong></li>
+            <li><strong>Biological phosphorus removal</strong> — no chemicals needed</li>
+            <li>Spatial separation → each microbial community thrives in <strong>its optimal zone</strong></li>
+            <li>Internal recycle links the oxic and anoxic zones — <strong>elegant engineering</strong></li>
+          </ul>
+          <div class="hl-box green" style="margin-top:14px"><strong>Breakthrough:</strong> Wastewater treatment becomes <em>integrated</em> — one system, three problems solved</div>
+        </div>
+
+        <div class="tab-panel" id="b1-limits">
+          <div class="hl-box rust" style="margin-bottom:16px"><strong>The Achilles' Heel: Carbon Competition</strong></div>
+          <div class="img-ph" style="margin-bottom:16px">
+            <img src="images/B1_conflict.jpg" alt="Carbon competition illustration" style="width:80%;border-radius:8px">
+          </div>
+          <ul class="blist">
+            <li>PAOs (anaerobic zone) need organic carbon to <strong>store as PHA</strong></li>
+            <li>Denitrifiers (anoxic zone) need organic carbon as <strong>electron donor</strong></li>
+            <li>Low C:N ratio wastewater → <strong>not enough carbon for both</strong></li>
+            <li>Adding external carbon (methanol, acetate) = <strong>extra cost</strong></li>
+            <li>Still requires <strong>aeration energy</strong> for oxic zone</li>
+          </ul>
+          <div class="hl-box amber" style="margin-top:14px"><strong>Key question:</strong> Can we remove nitrogen without needing organic carbon at all?</div>
+        </div>
+
+        <div class="tab-panel" id="b1-compare">
+          <div style="font-size:13px;color:var(--text3);margin-bottom:10px;font-family:'Space Mono',monospace">Route B starts here — comparison will grow</div>
+          <table class="vs-table">
+            <tr><th>Parameter</th><th class="blue">A²/O</th></tr>
+            <tr><td class="feature">C removal</td><td><strong>✅ Yes</strong></td></tr>
+            <tr><td class="feature">N removal</td><td><strong>✅ Yes (via nitrification/denitrification)</strong></td></tr>
+            <tr><td class="feature">P removal</td><td><strong>✅ Yes (biological)</strong></td></tr>
+            <tr><td class="feature">Carbon source needed</td><td>⚠ <strong>Yes</strong> — for denitrification &amp; P release</td></tr>
+            <tr><td class="feature">Aeration energy</td><td>⚠ High (oxic zone)</td></tr>
+            <tr><td class="feature">Sludge production</td><td>Moderate</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           B2: ANAMMOX
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-b2">
+        <div class="slide-tag">Route B · Stop 2</div>
+        <div class="slide-title">The <strong>Anammox</strong> Revolution</div>
+        <div class="slide-lead">Anaerobic Ammonium Oxidation — <strong>no carbon, no oxygen, no problem</strong></div>
+
+        <div class="tabs">
+          <button class="tab active" onclick="switchTab(this,'b2-mech')">⚙ Mechanism</button>
+          <button class="tab" onclick="switchTab(this,'b2-solved')">✅ Solved</button>
+          <button class="tab" onclick="switchTab(this,'b2-limits')">⚠ Limitations</button>
+          <button class="tab" onclick="switchTab(this,'b2-compare')">📊 Compare</button>
+        </div>
+
+        <div class="tab-panel active" id="b2-mech">
+          <div class="formula">NH₄⁺ + 1.32 NO₂⁻ → 1.02 N₂ + 0.26 NO₃⁻ + 2H₂O</div>
+
+        <div class="img-ph" style="margin-bottom:16px">
+            <img src="images/B2_magic.jpg" alt="Carbon competition illustration" style="width:80%;border-radius:8px">
+          </div>
+
+          <div class="grid-2">
+            <div class="card" style="border-color:rgba(0,229,176,.4)">
+              <div class="card-label">Who does this?</div>
+              <div class="kw" style="font-size:19px"><em>Anammox bacteria</em></div>
+              <ul class="blist" style="margin-top:10px">
+                <li><strong>Autotrophic</strong> — fix CO₂, no organic C</li>
+                <li>Strictly <strong>anoxic</strong> environment</li>
+                <li>Deep red colour (haem protein)</li>
+                <li>Doubling time: <strong>~11 days</strong> (very slow)</li>
+              </ul>
+            </div>
+            <div class="card" style="border-color:rgba(91,184,245,.4)">
+              <div class="card-label blue">What's needed?</div>
+              <div class="kw blue" style="font-size:19px"><em>Partial nitritation</em></div>
+              <ul class="blist" style="margin-top:10px">
+                <li>Need <strong>NO₂⁻</strong>, not NO₃⁻</li>
+                <li>AOB convert: NH₄⁺ → <strong>NO₂⁻</strong></li>
+                <li>Stop nitrification at <strong>half-way</strong></li>
+                <li>Ratio: NH₄⁺ : NO₂⁻ ≈ <strong>1 : 1.32</strong></li>
+              </ul>
+            </div>
+          </div>
+          <div class="hl-box green">
+            <strong>Multi-Zonal Anammox</strong> (Prof. Yongzhen Peng, Beijing Univ. of Technology): Anammox bacteria distributed across <strong>all three zones of A²/O</strong> — more stable, broader applicability
+          </div>
+        </div>
+
+        <div class="tab-panel" id="b2-solved">
+          <div class="grid-2">
+            <div class="card" style="border-color:rgba(0,229,176,.4)">
+              <div class="card-label">🔋 Carbon saved</div>
+              <div class="kw" style="font-size:22px"><em>~100%</em></div>
+              <div style="font-size:14px;color:var(--text2);margin-top:6px">No organic carbon needed for N removal — solved the carbon competition problem completely</div>
+            </div>
+            <div class="card" style="border-color:rgba(255,184,48,.4)">
+              <div class="card-label amber">⚡ Energy saved</div>
+              <div class="kw amber" style="font-size:22px"><em>~60%</em></div>
+              <div style="font-size:14px;color:var(--text2);margin-top:6px">No need to fully nitrify NH₄⁺ → NO₃⁻ → massive aeration energy reduction</div>
+            </div>
+            <div class="card" style="border-color:rgba(91,184,245,.4)">
+              <div class="card-label blue">🧪 Sludge reduced</div>
+              <div class="kw blue" style="font-size:22px"><em>&gt;90%</em></div>
+              <div style="font-size:14px;color:var(--text2);margin-top:6px">Autotrophic, slow-growing bacteria produce far less excess sludge</div>
+            </div>
+            <div class="card" style="border-color:rgba(0,229,176,.3)">
+              <div class="card-label">🌍 N₂O reduced</div>
+              <div class="kw" style="font-size:22px"><em>Lower</em></div>
+              <div style="font-size:14px;color:var(--text2);margin-top:6px">Fewer nitrification steps → less N₂O (300× CO₂ warming potential)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="b2-limits">
+          <ul class="blist">
+            <li>Anammox bacteria <strong>grow extremely slowly</strong> (doubling time ~11 days) — months of start-up</li>
+            <li>Sensitive to <strong>temperature</strong> (optimal 30–40°C), dissolved oxygen, and pH</li>
+            <li>Requires precise <strong>partial nitritation control</strong> — stopping at NO₂⁻ is tricky</li>
+            <li>Mainly applied to <strong>high-ammonia sidestreams</strong> (digester reject water) — mainstream application still challenging</li>
+            <li><strong>P removal still needed</strong> separately</li>
+          </ul>
+          <div class="hl-box amber" style="margin-top:14px"><strong>Future:</strong> Multi-zonal strategy aims to make Anammox work in mainstream wastewater → carbon-neutral WWTPs</div>
+        </div>
+
+        <div class="tab-panel" id="b2-compare">
+          <table class="vs-table">
+            <tr><th>Parameter</th><th class="blue">A²/O</th><th style="color:var(--green)">Anammox</th></tr>
+            <tr><td class="feature">N removal pathway</td><td>Nitrification + Denitrification</td><td><strong>Direct NH₄⁺ + NO₂⁻ → N₂</strong></td></tr>
+            <tr><td class="feature">Carbon needed?</td><td>⚠ Yes</td><td><strong>✅ No</strong></td></tr>
+            <tr><td class="feature">Aeration energy</td><td>High</td><td><strong>~60% less ✅</strong></td></tr>
+            <tr><td class="feature">Sludge production</td><td>Moderate</td><td><strong>&gt;90% less ✅</strong></td></tr>
+            <tr><td class="feature">P removal</td><td>✅ Yes (biological)</td><td>⚠ Not included</td></tr>
+            <tr><td class="feature">Start-up time</td><td>Weeks</td><td>⚠ Months</td></tr>
+            <tr><td class="feature">Operational complexity</td><td>Medium</td><td>High</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           FINAL COMPARE: Anaerobic vs Anoxic
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-sc">
+        <div class="slide-tag">Final — Synthesis</div>
+        <div class="slide-title"><strong>Anaerobic</strong> vs <strong>Anoxic</strong>: Full Picture</div>
+        <div class="slide-lead">After seeing all the technologies — how do these two strategies compare and <strong>complement</strong> each other?</div>
+
+        <table class="vs-table" style="margin-bottom:20px">
+          <tr><th>Feature</th><th class="green">Anaerobic</th><th class="blue">Anoxic</th></tr>
+          <tr><td class="feature">O₂</td><td>Strictly zero</td><td>Zero (but NO₃⁻ present)</td></tr>
+          <tr><td class="feature">Electron acceptor</td><td><strong>CO₂ / organic C</strong></td><td><strong>NO₃⁻ or NO₂⁻</strong></td></tr>
+          <tr><td class="feature">Main product</td><td><strong>CH₄ (energy!)</strong></td><td><strong>N₂ (harmless gas)</strong></td></tr>
+          <tr><td class="feature">Primary role</td><td>COD removal + energy recovery</td><td>Nitrogen removal</td></tr>
+          <tr><td class="feature">Technologies</td><td>CSTR → UASB → EGSB → AnMBR</td><td>A²/O → Anammox</td></tr>
+          <tr><td class="feature">Carbon requirement</td><td>Consumes organic C</td><td>Needs C (A²/O) or none (Anammox)</td></tr>
+          <tr><td class="feature">Energy</td><td>Produces energy</td><td>Consumes energy (aeration in A²/O)</td></tr>
+          <tr><td class="feature">Sludge</td><td>Moderate</td><td>High (A²/O) / Very low (Anammox)</td></tr>
+        </table>
+
+        <div class="hl-box green">
+          <strong>They are complementary, not competing</strong><br>
+          <span style="font-size:15px">Real wastewater treatment plants use <strong>both</strong> — Anaerobic first (remove COD, recover energy), then Anoxic/Oxic (remove N &amp; P)</span>
+        </div>
+
+        <div class="hl-box amber" style="margin-top:12px">
+          <strong>The evolution in one sentence:</strong><br>
+          <span style="font-size:15px">From "treat waste and discard" → to "recover energy, nitrogen, phosphorus, and water — leave nothing behind"</span>
+        </div>
+      </div>
+<!-- ══════════════════════════════════════
+           REFERENCES
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-ref">
+        <div class="slide-tag">References</div>
+        <div class="slide-title"><strong>References</strong></div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[1]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              Zieliński, M., Kazimierowicz, J., &amp; Dębowski, M. (2023). Advantages and limitations of anaerobic wastewater treatment — technological basics, development directions, and technological innovations. <em style="color:var(--text)">Energies</em>, 16(1), 83. https://doi.org/10.3390/en16010083
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[2]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              Zhang, X., Fan, Y., Hao, T., Chen, R., Zhang, T., Hu, Y., Li, D., Pan, Y., Li, Y. Y., &amp; Kong, Z. (2024). Insights into current bio-processes and future perspectives of carbon-neutral treatment of industrial organic wastewater: A critical review. <em style="color:var(--text)">Environmental Research</em>, 241, 117630. https://doi.org/10.1016/j.envres.2023.117630
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[3]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              Zhang, X., Hao, T., Zhang, T., Hu, Y., Lu, R., Li, D., Pan, Y., Li, Y. Y., &amp; Kong, Z. (2024). Towards energy conservation and carbon reduction for wastewater treatment processes: A review of carbon-neutral anaerobic biotechnologies. <em style="color:var(--text)">Journal of Environmental Chemical Engineering</em>, 12(3), 112448. https://doi.org/10.1016/j.jece.2024.112448
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[4]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              Mariraj Mohan, S., &amp; Swathi, T. (2022). A review on upflow anaerobic sludge blanket reactor: Factors affecting performance, modification of configuration and its derivatives. <em style="color:var(--text)">Water Environment Research</em>, 94(1), e1665. https://doi.org/10.1002/wer.1665
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[5]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              D'Bastiani, C., Kennedy, D., &amp; Reynolds, A. (2023). CFD simulation of anaerobic granular sludge reactors: A review. <em style="color:var(--text)">Water Research</em>, 242, 120220. https://doi.org/10.1016/j.watres.2023.120220
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[6]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              Parihar, R. K., Burnwal, P. K., Chaurasia, S. P., et al. (2024). Unveiling the evolution of anaerobic membrane bioreactors: applications, fouling issues, and future perspective in wastewater treatment. <em style="color:var(--text)">Reviews in Environmental Science and Bio/Technology</em>, 23, 949–988. https://doi.org/10.1007/s11157-024-09710-6
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[7]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              Elmoutez, S., Abushaban, A., Necibi, M. C., Sillanpää, M., Liu, J., Dhiba, D., Chehbouni, A., &amp; Taky, M. (2023). Design and operational aspects of anaerobic membrane bioreactor for efficient wastewater treatment and biogas production. <em style="color:var(--text)">Environmental Challenges</em>, 10, 100671. https://doi.org/10.1016/j.envc.2022.100671
+            </div>
+          </div>
+
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            <div style="font-family:'Space Mono',monospace;font-size:12px;color:var(--amber);min-width:24px;padding-top:2px">[8]</div>
+            <div style="font-size:14px;color:var(--text2);line-height:1.65">
+              Deng, Z., Sun, C., Ma, G., Zhang, X., Guo, H., Zhang, T., Zhang, Y., Hu, Y., Li, D., Li, Y. Y., &amp; Kong, Z. (2025). Anaerobic treatment of nitrogenous industrial organic wastewater by carbon-neutral processes integrated with anaerobic digestion and partial nitritation/anammox: Critical review of current advances and future directions. <em style="color:var(--text)">Bioresource Technology</em>, 415, 131648. https://doi.org/10.1016/j.biortech.2024.131648
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+
+
+      <!-- ══════════════════════════════════════
+           Q&A
+      ══════════════════════════════════════ -->
+      <div class="slide" id="slide-sq">
+        <div class="slide-tag">The End</div>
+        <div class="slide-title">Thank You — <strong>Q&amp;A</strong></div>
+        <div class="slide-lead">The magical journey of waste continues...</div>
+
+        <div class="grid-2" style="margin-top:20px">
+          <div class="card">
+            <div class="card-label">Route A Summary</div>
+            <ul class="blist">
+              <li>Biogas Pit → <strong>concept proven</strong></li>
+              <li>UASB → <strong>biomass retained</strong></li>
+              <li>EGSB → <strong>velocity + load up</strong></li>
+              <li>AnMBR → <strong>ultimate retention</strong></li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-label blue">Route B Summary</div>
+            <ul class="blist">
+              <li>A²/O → <strong>C+N+P together</strong></li>
+              <li>Anammox → <strong>no carbon needed</strong></li>
+              <li>Multi-Zonal → <strong>real-world scale</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="hl-box green" style="margin-top:20px;text-align:center;font-size:18px">
+          <strong>Waste is not waste — it's a misplaced resource</strong>
+        </div>
+
+        <div class="img-ph" style="margin-top:20px">
+          <img src="images/15_goodbye.jpg" alt="Thank you">
+        </div>
+      </div>
+
+    </div><!-- /content -->
+
+    <!-- NAV BAR -->
+    <div id="navbar">
+      <button class="nav-btn" id="btn-prev" onclick="navigate(-1)" disabled>← PREV</button>
+      <div id="page-info">
+        <span id="page-num">1 / 12</span>
+        <span id="page-title-disp">Title</span>
+      </div>
+      <button class="nav-btn next" id="btn-next" onclick="navigate(1)">NEXT →</button>
+    </div>
+  </div><!-- /main-wrap -->
+
+  <!-- RIGHT: Glossary -->
+  <div id="sidebar">
+    <div class="sb-head">
+      <h3>📖 Glossary</h3>
+      <p>Terms accumulate as you progress</p>
+    </div>
+    <div id="glossary-list"></div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ══════ MINDMAP EXPAND OVERLAY ══════ -->
+<div id="mindmap-expand-screen">
+  <div style="text-align:center;margin-bottom:20px">
+    <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--green);letter-spacing:.15em;margin-bottom:8px">MEET XIAO NONG · 小浓的成分分析</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:28px;font-style:italic;color:var(--text)">High Concentration <span style="color:var(--amber)">——&gt;&gt;</span> High Potential</div>
+  </div>
+  <svg id="mindmap-expand-svg" viewBox="0 0 860 400" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div style="margin-top:24px;text-align:center">
+    <button class="nav-btn next" onclick="finishMindmap()" style="font-size:14px;padding:11px 32px">
+      Enter Treatment Routes →
+    </button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════
+// SLIDES ORDER & DATA
+// ════════════════════════════════════
+const SLIDES = [
+  { id:'s1', title:'Title',              mm:'mm-s1' },
+  { id:'s2', title:'Waste vs. Water',    mm:'mm-s2' },
+  { id:'s3', title:'Meet Xiao Nong',     mm:'mm-s3' },
+  { id:'s4', title:'Anaerobic vs Anoxic',mm:'mm-s4' },
+  { id:'a1', title:'A1 · Biogas Pit',    mm:'mm-a1' },
+  { id:'a2', title:'A2 · UASB',          mm:'mm-a2' },
+  { id:'a3', title:'A3 · EGSB',          mm:'mm-a3' },
+  { id:'a4', title:'A4 · EGSB+AnMBR',   mm:'mm-a4' },
+  { id:'b1', title:'B1 · A²/O',          mm:'mm-b1' },
+  { id:'b2', title:'B2 · Anammox',       mm:'mm-b2' },
+  { id:'sc', title:'Final Compare',      mm:'mm-sc' },
+  { id:'ref', title:'References',         mm:null },
+  { id:'sq', title:'Q&A',                mm:'mm-sq' },
+];
+
+const GLOSSARY = {
+  s1:[
+    {term:'Biotreatment',cn:'生物处理',def:'Using microorganisms to break down or transform pollutants into harmless or recoverable products.'},
+    {term:'Anaerobic',cn:'厌氧',def:'Environment with zero dissolved oxygen. Microbes use alternative electron acceptors like CO₂.'},
+    {term:'Anoxic',cn:'缺氧',def:'Environment with no dissolved O₂ but containing nitrate (NO₃⁻) as electron acceptor.'},
+  ],
+  s2:[
+    {term:'COD',cn:'化学需氧量',def:'Chemical Oxygen Demand — total organic content measured by O₂ needed to oxidize it. Higher = more polluted.'},
+    {term:'High-strength Waste',cn:'高浓度废物',def:'Wastewater with COD >1,000 mg/L, typically from industrial sources. Contains recoverable energy.'},
+    {term:'Eutrophication',cn:'富营养化',def:'Over-enrichment of water with nutrients (N, P), causing algal blooms and oxygen depletion.'},
+  ],
+  s3:[
+    {term:'NH₄⁺ (Ammonia)',cn:'氨氮',def:'Ammonium ion — toxic to aquatic life at high concentrations. Must be removed from wastewater.'},
+    {term:'Phosphorus (P)',cn:'磷',def:'Nutrient that at excess levels causes eutrophication. Also a non-renewable resource worth recovering.'},
+    {term:'Resource Recovery',cn:'资源化利用',def:'Extracting valuable products (energy, nutrients, water) from waste rather than just treating and discarding.'},
+  ],
+  s4:[
+    {term:'Methanogenesis',cn:'产甲烷作用',def:'Final stage of anaerobic digestion: methanogens convert acetate/H₂ into CH₄. Rate-limiting step.'},
+    {term:'Denitrification',cn:'反硝化作用',def:'Microbial reduction of NO₃⁻/NO₂⁻ → N₂ gas under anoxic conditions using organic C as electron donor.'},
+    {term:'Electron Acceptor',cn:'电子受体',def:'Molecule that accepts electrons in respiration. O₂ (aerobic), NO₃⁻ (anoxic), CO₂ (anaerobic).'},
+  ],
+  a1:[
+    {term:'Anaerobic Digester',cn:'厌氧消化池',def:'Sealed reactor for organic matter breakdown by microbes in the absence of oxygen, producing biogas.'},
+    {term:'CSTR',cn:'连续搅拌反应器',def:'Continuously Stirred Tank Reactor. Mechanical mixing provides uniform conditions; upgrade of basic biogas pit.'},
+    {term:'HRT',cn:'水力停留时间',def:'Hydraulic Retention Time — average time wastewater spends in a reactor. Shorter = more efficient.'},
+    {term:'Hydrolysis',cn:'水解',def:'First anaerobic stage: large organic molecules broken into soluble monomers by extracellular enzymes.'},
+    {term:'Acidogenesis',cn:'产酸阶段',def:'Second stage: monomers fermented into volatile fatty acids (VFAs), alcohols, H₂ and CO₂.'},
+    {term:'Methanogenesis',cn:'产甲烷阶段',def:'Fourth stage: methanogens convert acetate and H₂ into CH₄ and CO₂. The rate-limiting step.'},
+  ],
+  a2:[
+    {term:'UASB',cn:'升流式厌氧污泥床',def:'Up-flow Anaerobic Sludge Blanket. Wastewater flows up through a dense granular sludge bed.'},
+    {term:'Granular Sludge',cn:'颗粒污泥',def:'Dense self-aggregated microbial pellets (1–3 mm). Settle against upward flow, retaining biomass in reactor.'},
+    {term:'Three-Phase Separator',cn:'三相分离器',def:'V-shaped baffle separating biogas (up), treated water (out), and sludge (back down) simultaneously.'},
+    {term:'SRT',cn:'污泥停留时间',def:'Sludge Retention Time — how long microbes stay in the reactor. UASB decouples SRT from HRT.'},
+  ],
+  a3:[
+    {term:'EGSB',cn:'膨胀颗粒污泥床',def:'Expanded Granular Sludge Bed. Higher up-flow velocity (4–10 m/h) keeps sludge bed in expanded/fluidised state.'},
+    {term:'Fluidised Bed',cn:'流化床',def:'Particles suspended and in constant motion by upward flowing fluid. Better mixing than packed bed.'},
+    {term:'Volumetric Loading Rate',cn:'容积负荷率',def:'Amount of COD fed to reactor per unit volume per day. Higher = more efficient reactor.'},
+  ],
+  a4:[
+    {term:'AnMBR',cn:'厌氧膜生物反应器',def:'Anaerobic Membrane Bioreactor. Couples EGSB with ultrafiltration/microfiltration membrane for complete biomass retention.'},
+    {term:'Membrane Fouling',cn:'膜污染',def:'Blockage of membrane pores by biomass, colloids, or precipitates. Main operational challenge of MBR systems.'},
+    {term:'Ultrafiltration',cn:'超滤',def:'Membrane process with 0.01–0.1 μm pore size. Retains bacteria and large molecules, produces very clean effluent.'},
+  ],
+  b1:[
+    {term:'A²/O Process',cn:'A²O工艺',def:'Anaerobic-Anoxic-Oxic process. Three sequential zones for simultaneous biological C, N, and P removal.'},
+    {term:'PAOs',cn:'聚磷菌',def:'Polyphosphate Accumulating Organisms. Release P anaerobically (store PHA), over-absorb P aerobically.'},
+    {term:'Nitrification',cn:'硝化作用',def:'Aerobic conversion: NH₄⁺ → NO₂⁻ (AOB) → NO₃⁻ (NOB). Requires dissolved oxygen.'},
+    {term:'Internal Recycle',cn:'内回流',def:'Pumping mixed liquor from oxic zone back to anoxic zone to supply NO₃⁻ for denitrification.'},
+    {term:'PHA',cn:'聚羟基脂肪酸酯',def:'Polyhydroxyalkanoate — intracellular carbon/energy storage compound produced by PAOs under anaerobic conditions.'},
+    {term:'Carbon Competition',cn:'碳源竞争',def:'Conflict between PAOs and denitrifiers for limited organic carbon in low C:N ratio wastewater.'},
+  ],
+  b2:[
+    {term:'Anammox',cn:'厌氧氨氧化',def:'Anaerobic AMMonium OXidation. Autotrophic bacteria combine NH₄⁺ + NO₂⁻ → N₂ without organic carbon.'},
+    {term:'Autotrophic',cn:'自养型',def:'Organisms fixing inorganic carbon (CO₂) as carbon source. Do not need to consume organic matter.'},
+    {term:'Partial Nitritation',cn:'部分硝化',def:'Controlled nitrification stopped at NO₂⁻ stage to provide substrate for Anammox bacteria.'},
+    {term:'N₂O',cn:'氧化亚氮',def:'Nitrous oxide — potent greenhouse gas (300× CO₂ warming potential), by-product of N cycling.'},
+    {term:'Multi-Zonal Anammox',cn:'多区厌氧氨氧化',def:"Prof. Yongzhen Peng's strategy: Anammox bacteria in all zones of A²/O — more stable, mainstream applicable."},
+  ],
+  sc:[
+    {term:'Carbon-Neutral WWTP',cn:'碳中和污水处理厂',def:'Wastewater treatment plant producing as much energy as it consumes. Net-zero carbon emissions.'},
+    {term:'Circular Economy',cn:'循环经济',def:'Economic model where waste becomes input — energy, nutrients, and water all recovered and reused.'},
+  ],
+  sq:[],
+};
+
+// ════════════════════════════════════
+// STATE
+// ════════════════════════════════════
+let currentIdx = 0;
+let mindmapUnlocked = false;
+let shownGlossary = new Set();
+let isAnimating = false;
+
+// ════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════
+function navigate(dir) {
+  if (isAnimating) return;
+  const newIdx = currentIdx + dir;
+  if (newIdx < 0 || newIdx >= SLIDES.length) return;
+  goToIdx(newIdx, dir);
+}
+
+function goTo(id) {
+  const idx = SLIDES.findIndex(s => s.id === id);
+  if (idx === -1 || idx === currentIdx) return;
+  goToIdx(idx, idx > currentIdx ? 1 : -1);
+}
+
+function goToIdx(newIdx, dir) {
+  if (isAnimating) return;
+  isAnimating = true;
+
+  const oldSlide = document.getElementById('slide-' + SLIDES[currentIdx].id);
+  const newSlide = document.getElementById('slide-' + SLIDES[newIdx].id);
+
+  // Exit animation on old
+  oldSlide.classList.remove('active');
+  oldSlide.classList.add(dir > 0 ? 'exit-left' : 'exit-right');
+
+  setTimeout(() => {
+    oldSlide.classList.remove('exit-left','exit-right');
+    // Enter animation on new
+    newSlide.classList.add(dir > 0 ? 'enter-right' : 'enter-left');
+    newSlide.classList.add('active');
+    setTimeout(() => {
+      newSlide.classList.remove('enter-right','enter-left');
+      isAnimating = false;
+    }, 380);
+  }, 300);
+
+  currentIdx = newIdx;
+  updateUI();
+}
+
+function updateUI() {
+  const s = SLIDES[currentIdx];
+  // Page info
+  document.getElementById('page-num').textContent = (currentIdx+1) + ' / ' + SLIDES.length;
+  document.getElementById('page-title-disp').textContent = s.title;
+  // Buttons
+  document.getElementById('btn-prev').disabled = currentIdx === 0;
+  document.getElementById('btn-next').disabled = currentIdx === SLIDES.length - 1;
+  // Mindmap nav highlight
+  document.querySelectorAll('#mm-nav-inner .mm-node').forEach(n => n.classList.remove('active'));
+  if (s.mm) {
+    const mmNode = document.getElementById(s.mm);
+    if (mmNode) mmNode.classList.add('active');
+  }
+  // Scroll content to top
+  document.getElementById('content').scrollTop = 0;
+  // Glossary
+  addGlossary(s.id);
+}
+
+// ════════════════════════════════════
+// GLOSSARY
+// ════════════════════════════════════
+function addGlossary(slideId) {
+  const terms = GLOSSARY[slideId] || [];
+  const list = document.getElementById('glossary-list');
+  terms.forEach(t => {
+    if (shownGlossary.has(t.term)) return;
+    shownGlossary.add(t.term);
+    const el = document.createElement('div');
+    el.className = 'g-item';
+    el.innerHTML = `<div class="g-term">${t.term}</div><div class="g-cn">${t.cn}</div><div class="g-def">${t.def}</div><span class="g-badge">${SLIDES.findIndex(s=>s.id===slideId)+1}/${SLIDES.length}</span>`;
+    list.appendChild(el);
+  });
+  setTimeout(() => { document.getElementById('sidebar').scrollTop = document.getElementById('sidebar').scrollHeight; }, 120);
+}
+
+// ════════════════════════════════════
+// TAB SYSTEM
+// ════════════════════════════════════
+function switchTab(btn, panelId) {
+  const tabs = btn.parentElement.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // Find all panels in same slide
+  const slide = btn.closest('.slide');
+  slide.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(panelId).classList.add('active');
+}
+
+// ════════════════════════════════════
+// MINDMAP EXPAND
+// ════════════════════════════════════
+function expandMindmap() {
+  const screen = document.getElementById('mindmap-expand-screen');
+  screen.classList.add('active');
+  drawMindmap();
+}
+
+function finishMindmap() {
+  const screen = document.getElementById('mindmap-expand-screen');
+  screen.classList.remove('active');
+  // Unlock mindmap nav
+  if (!mindmapUnlocked) {
+    mindmapUnlocked = true;
+    document.getElementById('mindmap-nav').classList.remove('hidden');
+  }
+  // Go to S4
+  goToIdx(3, 1);
+}
+
+function drawMindmap() {
+  const svg = document.getElementById('mindmap-expand-svg');
+  svg.innerHTML = '';
+
+  const nodes = [
+    // Center
+    {id:'xn', x:430, y:200, label:'Xiao Nong', sub:'小浓', color:'#ffb830', r:45, bold:true},
+    // Properties
+    {id:'cod', x:580, y:115, label:'High COD', sub:'5,000 mg/L', color:'#e05c3a', r:35},
+    {id:'nh4', x:620, y:200, label:'High NH₄⁺', sub:'200+ mg/L', color:'#5bb8f5', r:35},
+    {id:'p',   x:580, y:285, label:'High P', sub:'30+ mg/L', color:'#ffffff', r:30},
+    // Route headers
+    {id:'ra', x:230, y:115, label:'Route A', sub:'COD → Energy', color:'#00e5b0', r:40},
+    {id:'rb', x:230, y:285, label:'Route B', sub:'N & P removal', color:'#5bb8f5', r:40},
+    // Environments
+    {id:'anae', x:90, y:70, label:'Anaerobic', sub:'Zero O₂', color:'#00e5b0', r:28},
+    {id:'anox', x:90, y:330, label:'Anoxic', sub:'No O₂+NO₃⁻', color:'#5bb8f5', r:28},
+    // Techs A
+    {id:'ta1', x:90, y:125, label:'Biogas Pit', sub:'CSTR', color:'#ffb830', r:28, small:true},
+    {id:'ta2', x:50, y:165, label:'UASB', sub:'', color:'#ffb830', r:22, small:true},
+    {id:'ta3', x:90, y:210, label:'EGSB', sub:'', color:'#ffb830', r:22, small:true},
+    {id:'ta4', x:50, y:255, label:'AnMBR', sub:'', color:'#ffb830', r:22, small:true},
+    // Techs B
+    {id:'tb1', x:130, y:285, label:'A²/O', sub:'', color:'#5bb8f5', r:22, small:true},
+    {id:'tb2', x:150, y:370, label:'Anammox', sub:'', color:'#5bb8f5', r:25, small:true},
+  ];
+
+  const edges = [
+    ['xn','cod'], ['xn','nh4'], ['xn','p'],
+    ['xn','ra'], ['xn','rb'],
+    ['ra','anae'], ['ra','ta1'], ['ra','ta2'], ['ra','ta3'], ['ra','ta4'],
+    ['rb','anox'], ['rb','tb1'], ['rb','tb2'],
+  ];
+
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.id] = n);
+
+  // Draw edges first
+  edges.forEach(([from, to]) => {
+    const a = nodeMap[from], b = nodeMap[to];
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    line.setAttribute('stroke', b.color);
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-opacity', '0.4');
+    line.setAttribute('stroke-dasharray', b.small ? '4,3' : '0');
+    svg.appendChild(line);
+  });
+
+  // Draw nodes
+  nodes.forEach((n, i) => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('style', `cursor:pointer;animation:fadeIn .4s ${i*60}ms both`);
+    if (!n.small) {
+      // Glow circle
+      const glow = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      glow.setAttribute('cx', n.x); glow.setAttribute('cy', n.y);
+      glow.setAttribute('r', n.r + 8);
+      glow.setAttribute('fill', n.color); glow.setAttribute('opacity', '0.08');
+      g.appendChild(glow);
+    }
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', n.x); circle.setAttribute('cy', n.y);
+    circle.setAttribute('r', n.r);
+    circle.setAttribute('fill', n.id === 'xn' ? 'rgba(255,184,48,0.15)' : `rgba(${hexToRgb(n.color)},0.1)`);
+    circle.setAttribute('stroke', n.color);
+    circle.setAttribute('stroke-width', n.bold ? '2.5' : '1.5');
+    g.appendChild(circle);
+
+    const text1 = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text1.setAttribute('x', n.x); text1.setAttribute('y', n.sub ? n.y - 5 : n.y + 5);
+    text1.setAttribute('text-anchor','middle');
+    text1.setAttribute('fill', n.color);
+    text1.setAttribute('font-size', n.bold ? '13' : n.small ? '10' : '11');
+    text1.setAttribute('font-family', 'Inter, sans-serif');
+    text1.setAttribute('font-weight', n.bold ? '800' : '700');
+    text1.textContent = n.label;
+    g.appendChild(text1);
+
+    if (n.sub) {
+      const text2 = document.createElementNS('http://www.w3.org/2000/svg','text');
+      text2.setAttribute('x', n.x); text2.setAttribute('y', n.y + 12);
+      text2.setAttribute('text-anchor','middle');
+      text2.setAttribute('fill', n.color);
+      text2.setAttribute('font-size', '9');
+      text2.setAttribute('font-family', 'Space Mono, monospace');
+      text2.setAttribute('opacity', '0.8');
+      text2.textContent = n.sub;
+      g.appendChild(text2);
+    }
+    svg.appendChild(g);
+  });
+}
+
+function hexToRgb(hex) {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '255,255,255';
+}
+
+// ════════════════════════════════════
+// KEYBOARD
+// ════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (document.getElementById('mindmap-expand-screen').classList.contains('active')) return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   navigate(-1);
+});
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+addGlossary('s1');
+updateUI();
+
+// ════════════════════════════════════
+// A1: STEP-BY-STEP STAGE HIGHLIGHT
+// ════════════════════════════════════
+const a1Boxes = [null,'a1-box1','a1-box2','a1-box3','a1-box4'];
+const a1Subs  = [null,'a1-sub1','a1-sub2','a1-sub3','a1-sub4'];
+const a1Eqs   = [null,'a1-eq1','a1-eq2','a1-eq3','a1-eq4'];
+
+const a1ActiveStroke  = {'1':'#BA7517','2':'#BA7517','3':'#BA7517','4':'#1D9E75'};
+const a1ActiveFill    = {'1':'rgba(186,117,23,0.45)','2':'rgba(186,117,23,0.45)','3':'rgba(186,117,23,0.45)','4':'rgba(15,110,86,0.5)'};
+const a1NormalFill    = {'1':'rgba(186,117,23,0.18)','2':'rgba(186,117,23,0.18)','3':'rgba(186,117,23,0.18)','4':'rgba(15,110,86,0.22)'};
+
+function a1Step(step) {
+  // Reset all boxes
+  for(let i=1;i<=4;i++){
+    const box = document.getElementById('a1-box'+i);
+    if(box) box.querySelector('rect').setAttribute('fill', a1NormalFill[i]);
+    const sub = document.getElementById('a1-sub'+i);
+    if(sub) sub.setAttribute('opacity','0');
+    const eq  = document.getElementById('a1-eq'+i);
+    if(eq)  eq.setAttribute('opacity','0');
+  }
+  if(step===0){
+    // Show all
+    for(let i=1;i<=4;i++){
+      const sub = document.getElementById('a1-sub'+i);
+      if(sub){ sub.setAttribute('opacity','1'); sub.style.transition='opacity 0.4s'; }
+      const eq  = document.getElementById('a1-eq'+i);
+      if(eq){  eq.setAttribute('opacity','1');  eq.style.transition='opacity 0.4s'; }
+    }
+    return;
+  }
+  // Highlight active box
+  const activeBox = document.getElementById('a1-box'+step);
+  if(activeBox) activeBox.querySelector('rect').setAttribute('fill', a1ActiveFill[step]);
+  // Show corresponding sub + eq
+  const activeSub = document.getElementById('a1-sub'+step);
+  if(activeSub){ activeSub.setAttribute('opacity','1'); }
+  const activeEq  = document.getElementById('a1-eq'+step);
+  if(activeEq){  activeEq.setAttribute('opacity','1');  }
+}
+
+// Init A1 showing all
+a1Step(0);
+</script>
+</body>
+</html>
