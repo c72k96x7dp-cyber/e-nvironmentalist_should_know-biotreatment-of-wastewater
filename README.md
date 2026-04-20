@@ -7,7 +7,7 @@
 
 An interactive, bilingual (English/Chinese) educational presentation exploring how microorganisms transform high-strength industrial wastewater into recoverable resources.
 
-**Live Demo:** [View Presentation](https://c72k96x7dp-cyber.github.io/e-nvironmentalist_should_know-biotreatment-of-wastewater/) 
+**Live Demo:** [View Presentation](https://c72k96x7dp-cyber.github.io/e-nvironmentalist_should_know-biotreatment-of-wastewater/上传github版pre/index.html) 
 ## 📋 Overview
 
 This project presents a comprehensive journey through modern wastewater treatment technologies, following the story of "Xiao Nong" (小浓)—a character representing high-concentration brewery wastewater. The presentation covers the evolution from traditional biogas pits to cutting-edge Anaerobic Membrane Bioreactors (AnMBR) and Anammox processes.
